@@ -7,4 +7,6 @@
     <!-- Dark scheme -->
     <color name="md_theme_dark_primaryContainer">#5A3A00</color>
     <color name="md_theme_dark_onPrimaryContainer">#FFDDB3</color>
+
+    <color name="ic_launcher_background">#FF6F00</color>
 </resources>
