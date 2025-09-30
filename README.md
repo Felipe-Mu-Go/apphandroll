@@ -18,3 +18,8 @@ Aplicación Android construida con Kotlin y Jetpack Compose que permite crear pe
 1. Clona este repositorio.
 2. Abre el proyecto en Android Studio.
 3. Sincroniza Gradle y ejecuta la app en un dispositivo o emulador Android (API 24+).
+
+## Política sobre archivos binarios
+Este repositorio no admite la inclusión de archivos binarios en las solicitudes de extracción.
+Utiliza recursos vectoriales (XML/Compose) o genera el contenido en tiempo de ejecución.
+Se agregó una verificación automática en los tests para asegurar que `src/main/res` permanezca libre de binarios.
