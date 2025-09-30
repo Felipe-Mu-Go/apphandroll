@@ -4,27 +4,26 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -37,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -163,180 +161,149 @@ fun AppHandrollScreen(onConfirm: (String) -> Unit) {
     var customerLastName by remember { mutableStateOf("") }
     val cartItems = remember { mutableStateListOf<CartItem>() }
 
-    val scrollStateProducts = rememberScrollState()
-    val scrollStateIngredients = rememberScrollState()
-    val scrollStateSummary = rememberScrollState()
+    val scrollState = rememberScrollState()
 
     val productTotal = calculateTotal(selectedProduct, ingredientSelections)
 
     val cartTotal = cartItems.sumOf { it.totalPrice }
 
     Surface(color = MaterialTheme.colorScheme.background) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .verticalScroll(scrollState)
                 .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-                    .verticalScroll(scrollStateProducts),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Productos",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                products.forEachIndexed { index, product ->
-                    ProductCard(
-                        product = product,
-                        isSelected = index == selectedProductIndex,
-                        onSelect = {
-                            selectedProductIndex = index
-                            ingredientSelections.values.forEach { it.clear() }
-                        }
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-                    .verticalScroll(scrollStateIngredients),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text(
-                    text = "Selección de ingredientes",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                ingredientCategories.forEach { category ->
-                    val selections = ingredientSelections[category.name] ?: mutableStateListOf()
-                    IngredientCategorySection(
-                        category = category,
-                        includedLimit = selectedProduct.includedByCategory[category.name] ?: category.included,
-                        selections = selections,
-                        onSelectionChange = { option, checked ->
-                            if (checked) {
-                                if (!selections.contains(option)) selections.add(option)
-                            } else {
-                                selections.remove(option)
+            SectionCard(title = "Productos") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    products.forEachIndexed { index, product ->
+                        ProductCard(
+                            product = product,
+                            isSelected = index == selectedProductIndex,
+                            onSelect = {
+                                selectedProductIndex = index
+                                ingredientSelections.values.forEach { it.clear() }
                             }
-                        }
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(16.dp)
-                    .verticalScroll(scrollStateSummary),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    text = "Resumen del pedido",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                OutlinedTextField(
-                    value = customerName,
-                    onValueChange = { customerName = it },
-                    label = { Text("Nombre") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = customerLastName,
-                    onValueChange = { customerLastName = it },
-                    label = { Text("Apellido") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                SummarySection(
-                    product = selectedProduct,
-                    ingredientSelections = ingredientSelections,
-                    total = productTotal
-                )
-
-                Button(
-                    onClick = {
-                        val selectionsCopy = ingredientSelections.mapValues { it.value.toList() }
-                        cartItems.add(
-                            CartItem(
-                                product = selectedProduct,
-                                ingredients = selectionsCopy,
-                                totalPrice = productTotal
-                            )
                         )
-                        ingredientSelections.values.forEach { it.clear() }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(vertical = 14.dp)
-                ) {
-                    Text(text = "Agregar al carrito")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Carrito",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                if (cartItems.isEmpty()) {
-                    Text(
-                        text = "Tu carrito está vacío",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    cartItems.forEach { item ->
-                        CartItemCard(item = item)
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            SectionCard(title = "Selección de ingredientes") {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    ingredientCategories.forEach { category ->
+                        val selections = ingredientSelections[category.name] ?: mutableStateListOf()
+                        IngredientCategorySection(
+                            category = category,
+                            includedLimit = selectedProduct.includedByCategory[category.name] ?: category.included,
+                            selections = selections,
+                            onSelectionChange = { option, checked ->
+                                if (checked) {
+                                    if (!selections.contains(option)) selections.add(option)
+                                } else {
+                                    selections.remove(option)
+                                }
+                            }
+                        )
+                    }
+                }
+            }
 
-                Text(
-                    text = "Total carrito: ${formatPrice(cartTotal)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+            SectionCard(title = "Resumen del pedido") {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = customerName,
+                        onValueChange = { customerName = it },
+                        label = { Text("Nombre") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                Button(
-                    onClick = {
-                        val nameDisplay = listOf(customerName, customerLastName)
-                            .filter { it.isNotBlank() }
-                            .joinToString(" ")
-                        if (nameDisplay.isNotBlank()) {
-                            onConfirm(nameDisplay)
-                            cartItems.clear()
+                    OutlinedTextField(
+                        value = customerLastName,
+                        onValueChange = { customerLastName = it },
+                        label = { Text("Apellido") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    SummarySection(
+                        product = selectedProduct,
+                        ingredientSelections = ingredientSelections,
+                        total = productTotal
+                    )
+
+                    Button(
+                        onClick = {
+                            val selectionsCopy = ingredientSelections.mapValues { it.value.toList() }
+                            cartItems.add(
+                                CartItem(
+                                    product = selectedProduct,
+                                    ingredients = selectionsCopy,
+                                    totalPrice = productTotal
+                                )
+                            )
+                            ingredientSelections.values.forEach { it.clear() }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(vertical = 14.dp)
+                    ) {
+                        Text(text = "Agregar al carrito", fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Carrito",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (cartItems.isEmpty()) {
+                        Text(
+                            text = "Tu carrito está vacío",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            cartItems.forEach { item ->
+                                CartItemCard(item = item)
+                            }
                         }
-                    },
-                    enabled = cartItems.isNotEmpty() && customerName.isNotBlank() && customerLastName.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    contentPadding = PaddingValues(vertical = 14.dp)
-                ) {
-                    Text("Confirmar pedido")
+                    }
+
+                    Text(
+                        text = "Total carrito: ${formatPrice(cartTotal)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Button(
+                        onClick = {
+                            val nameDisplay = listOf(customerName, customerLastName)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+                            if (nameDisplay.isNotBlank()) {
+                                onConfirm(nameDisplay)
+                                cartItems.clear()
+                            }
+                        },
+                        enabled = cartItems.isNotEmpty() && customerName.isNotBlank() && customerLastName.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary,
+                            contentColor = MaterialTheme.colorScheme.onSecondary
+                        ),
+                        contentPadding = PaddingValues(vertical = 14.dp)
+                    ) {
+                        Text("Confirmar pedido", fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
@@ -345,13 +312,18 @@ fun AppHandrollScreen(onConfirm: (String) -> Unit) {
 
 @Composable
 private fun ProductCard(product: Product, isSelected: Boolean, onSelect: () -> Unit) {
-    val cardColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
+    val cardColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
     Card(
-        colors = CardDefaults.cardColors(containerColor = cardColor),
+        colors = CardDefaults.cardColors(
+            containerColor = cardColor,
+            contentColor = MaterialTheme.colorScheme.onSurface
+        ),
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() }
+            .padding(horizontal = 4.dp),
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(text = product.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -405,7 +377,6 @@ private fun IngredientCategorySection(
                 fontWeight = FontWeight.Bold
             )
         }
-        Divider(thickness = 1.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
     }
 }
 
@@ -438,7 +409,10 @@ private fun CartItemCard(item: CartItem) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+        )
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(text = item.product.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
@@ -469,6 +443,35 @@ private fun calculateTotal(product: Product, ingredientSelections: Map<String, M
         total += extras * extraPrice
     }
     return total
+}
+
+@Composable
+private fun SectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            content()
+        }
+    }
 }
 
 private fun formatPrice(price: Int): String = "$" + String.format("%,d", price).replace(',', '.')
