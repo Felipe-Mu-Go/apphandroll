@@ -54,13 +54,17 @@ dependencies {
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
+    // Compose
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    // Material Components (XML Material 3 themes)
+    implementation("com.google.android.material:material:1.12.0")
+
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
