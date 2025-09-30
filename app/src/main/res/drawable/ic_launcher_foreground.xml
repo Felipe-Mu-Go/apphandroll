@@ -4,10 +4,11 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Un ícono simple (círculo + letra H) -->
+    <!-- círculo blanco -->
     <path
         android:fillColor="#FFFFFF"
         android:pathData="M54,10a44,44 0,1 1,0,88a44,44 0,1 1,0,-88z"/>
+    <!-- letra H negra -->
     <path
         android:fillColor="#000000"
         android:pathData="M42,30h8v18h8V30h8v48h-8V54h-8v24h-8z"/>
