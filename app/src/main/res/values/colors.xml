@@ -1,7 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="beige_light">#F5E6CC</color>
-    <color name="beige_medium">#E9D4B8</color>
-    <color name="brown_light">#9C6B45</color>
-    <color name="brown_dark">#5C3A21</color>
-    <color name="white">#FFFFFF</color>
+    <!-- Light scheme -->
+    <color name="md_theme_light_primaryContainer">#FFE0B2</color>
+    <color name="md_theme_light_onPrimaryContainer">#3A2500</color>
+
+    <!-- Dark scheme -->
+    <color name="md_theme_dark_primaryContainer">#5A3A00</color>
+    <color name="md_theme_dark_onPrimaryContainer">#FFDDB3</color>
 </resources>
