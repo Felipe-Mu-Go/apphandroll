@@ -5,3 +5,15 @@
 .DS_Store
 /build/
 app/build/
+
+# Evitar que recursos binarios se agreguen al repositorio
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.ico
+**/*.aab
+**/*.apk
+**/*.keystore
+**/*.jar
