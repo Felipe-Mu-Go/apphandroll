@@ -1,12 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light scheme -->
-    <color name="md_theme_light_primaryContainer">#FFE0B2</color>
-    <color name="md_theme_light_onPrimaryContainer">#3A2500</color>
-
-    <!-- Dark scheme -->
-    <color name="md_theme_dark_primaryContainer">#5A3A00</color>
-    <color name="md_theme_dark_onPrimaryContainer">#FFDDB3</color>
-
     <color name="ic_launcher_background">#FF6F00</color>
 </resources>
