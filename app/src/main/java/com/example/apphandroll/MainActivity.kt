@@ -85,62 +85,62 @@ data class CartItem(
 
 private val ingredientCategories = listOf(
     IngredientCategory(
-        name = "Proteína",
+        name = "Proteínas",
         included = 1,
         extraPrice = 1000,
-        options = listOf("Salmón", "Atún", "Camarón", "Tofu")
+        options = listOf("Pollo", "Camarón", "Carne", "Kanikama", "Palmito", "Champiñon")
     ),
     IngredientCategory(
         name = "Base",
         included = 1,
         extraPrice = 1000,
-        options = listOf("Arroz", "Quinoa", "Lechuga", "Mix de algas")
+        options = listOf("Queso", "Palta")
     ),
     IngredientCategory(
         name = "Vegetales",
         included = 2,
         extraPrice = 500,
-        options = listOf("Palta", "Pepino", "Zanahoria", "Cebollín", "Brotes")
+        options = listOf("Cebollin", "Ciboulettte", "Choclo")
     )
 )
 
 private val products = listOf(
     Product(
-        name = "Handroll Clásico",
+        name = "Handroll",
         description = "Un clásico con ingredientes seleccionados",
-        basePrice = 4500,
+        basePrice = 3500,
         includedByCategory = mapOf(
-            "Proteína" to 1,
+            "Proteínas" to 1,
             "Base" to 1,
             "Vegetales" to 1
         )
     ),
     Product(
-        name = "Gohan Personalizado",
+        name = "Gohan",
         description = "Arma tu gohan a tu gusto",
+        basePrice = 6500,
+        includedByCategory = mapOf(
+            "Proteínas" to 1,
+            "Base" to 1,
+            "Vegetales" to 2
+        )
+    ),
+    Product(
+        name = "SushiBurger",
+        description = "Pan de arroz sellado con relleno generoso",
         basePrice = 5500,
         includedByCategory = mapOf(
-            "Proteína" to 1,
+            "Proteínas" to 2,
             "Base" to 1,
             "Vegetales" to 2
         )
     ),
     Product(
-        name = "Sushi Burger Crujiente",
-        description = "Pan de arroz sellado con relleno generoso",
-        basePrice = 6200,
-        includedByCategory = mapOf(
-            "Proteína" to 2,
-            "Base" to 1,
-            "Vegetales" to 2
-        )
-    ),
-    Product(
-        name = "Sushi Pleto Tradicional",
+        name = "Sushipleto",
         description = "Bandeja variada para compartir",
-        basePrice = 7800,
+        basePrice = 4500,
         includedByCategory = mapOf(
-            "Proteína" to 2,
+            "Proteínas" to 2,
             "Base" to 2,
             "Vegetales" to 3
         )
