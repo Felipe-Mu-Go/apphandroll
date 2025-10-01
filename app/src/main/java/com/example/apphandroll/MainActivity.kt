@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -445,20 +444,18 @@ fun CartScreen(
             if (cartItems.isEmpty()) {
                 Text(text = "Carrito vacío", style = MaterialTheme.typography.bodyLarge)
             } else {
-                Box(
-                    modifier = Modifier.weight(1f, fill = false)
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(cartItems, key = { it.id }) { item ->
-                            CartItemRow(
-                                item = item,
-                                onEdit = { onEditItem(item) },
-                                onDelete = { onRemoveItem(item.id) }
-                            )
-                        }
+                    items(cartItems, key = { it.id }) { item ->
+                        CartItemRow(
+                            item = item,
+                            onEdit = { onEditItem(item) },
+                            onDelete = { onRemoveItem(item.id) }
+                        )
                     }
                 }
             }
