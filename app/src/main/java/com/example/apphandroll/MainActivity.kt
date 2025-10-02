@@ -34,6 +34,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +64,15 @@ import androidx.navigation.compose.rememberNavController
 import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.Product
+
+private sealed interface CatalogItem
+
+private data class SingleProductItem(val product: Product) : CatalogItem
+
+private data class SushipletoCombinedItem(
+    val classic: Product,
+    val vegetarian: Product
+) : CatalogItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -285,6 +295,36 @@ fun ProductListScreen(
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit
 ) {
+    val sushipleto = products.firstOrNull { it.id == "sushipleto" }
+    val sushipletoVegetariano = products.firstOrNull { it.id == "sushipleto_vegetariano" }
+    val hasCombinedSushipleto = sushipleto != null && sushipletoVegetariano != null
+    val catalogItems = buildList<CatalogItem> {
+        var combinedAdded = false
+        products.forEach { product ->
+            when (product.id) {
+                "sushipleto" -> {
+                    if (hasCombinedSushipleto && !combinedAdded) {
+                        add(
+                            SushipletoCombinedItem(
+                                classic = sushipleto!!,
+                                vegetarian = sushipletoVegetariano!!
+                            )
+                        )
+                        combinedAdded = true
+                    } else {
+                        add(SingleProductItem(product))
+                    }
+                }
+                "sushipleto_vegetariano" -> {
+                    if (!hasCombinedSushipleto) {
+                        add(SingleProductItem(product))
+                    }
+                }
+                else -> add(SingleProductItem(product))
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -315,12 +355,91 @@ fun ProductListScreen(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(products) { product ->
-                ProductCard(
-                    product = product,
-                    onSelect = { onProductClick(product) }
-                )
+            items(
+                items = catalogItems,
+                key = { item ->
+                    when (item) {
+                        is SingleProductItem -> item.product.id
+                        is SushipletoCombinedItem -> "sushipleto_combined"
+                    }
+                }
+            ) { item ->
+                when (item) {
+                    is SingleProductItem -> {
+                        ProductCard(
+                            product = item.product,
+                            onSelect = { onProductClick(item.product) }
+                        )
+                    }
+                    is SushipletoCombinedItem -> {
+                        SushipletoCombinedCard(
+                            sushipleto = item.classic,
+                            vegetarian = item.vegetarian,
+                            onSelectSushipleto = { onProductClick(item.classic) },
+                            onSelectVegetarian = { onProductClick(item.vegetarian) }
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun SushipletoCombinedCard(
+    sushipleto: Product,
+    vegetarian: Product,
+    onSelectSushipleto: () -> Unit,
+    onSelectVegetarian: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            SushipletoSection(
+                product = sushipleto,
+                onSelect = onSelectSushipleto
+            )
+            Divider()
+            SushipletoSection(
+                product = vegetarian,
+                onSelect = onSelectVegetarian
+            )
+        }
+    }
+}
+
+@Composable
+private fun SushipletoSection(
+    product: Product,
+    onSelect: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = product.name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = "Precio: ${formatPrice(product.basePrice)}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            text = "Incluye: ${product.baseIncludedDescription}",
+            style = MaterialTheme.typography.bodySmall
+        )
+        Button(onClick = onSelect, modifier = Modifier.fillMaxWidth()) {
+            Text(text = "Elegir ingredientes")
         }
     }
 }
