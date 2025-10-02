@@ -65,6 +65,10 @@ import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.Product
 
+private val FLEXIBLE_INGREDIENT_PRODUCT_IDS = setOf("handroll", "sushiburger", "sushipleto")
+
+private const val FLEXIBLE_INGREDIENT_SUBTITLE = "Puedes escoger libremente entre Proteínas, Bases y Vegetales.\nIncluye hasta 1 por categoría; extras: proteína/base +$1.000, vegetal +$500."
+
 private sealed interface CatalogItem
 
 private data class SingleProductItem(val product: Product) : CatalogItem
@@ -181,7 +185,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
 
     if (showSelector && currentProduct != null) {
         val totalSelections = currentCategorySelections.values.sumOf { it.size }
-        val canContinue = if (currentProduct.id == "handroll") {
+        val canContinue = if (FLEXIBLE_INGREDIENT_PRODUCT_IDS.contains(currentProduct.id)) {
             totalSelections >= 1
         } else {
             currentProduct.ingredientCategories.all { category ->
@@ -484,7 +488,7 @@ fun IngredientSelectorDialog(
     onContinue: () -> Unit,
     canContinue: Boolean
 ) {
-    val isHandroll = product.id == "handroll"
+    val usesFlexibleSelection = FLEXIBLE_INGREDIENT_PRODUCT_IDS.contains(product.id)
     val selectedOptionalIngredients = product.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
     val extrasFromCategories = product.ingredientCategories.sumOf { category ->
         val selections = categorySelections[category.id].orEmpty()
@@ -508,7 +512,7 @@ fun IngredientSelectorDialog(
         },
         title = {
             Text(
-                text = if (isHandroll) {
+                text = if (usesFlexibleSelection) {
                     "Elige tus ingredientes (mínimo 1)"
                 } else {
                     "Selecciona ingredientes"
@@ -522,9 +526,9 @@ fun IngredientSelectorDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                if (isHandroll) {
+                if (usesFlexibleSelection) {
                     Text(
-                        text = "Puedes escoger libremente entre Proteínas, Bases y Vegetales. Incluye hasta 1 de cada categoría. Extras: proteína/base +$1.000, vegetal +$500.",
+                        text = FLEXIBLE_INGREDIENT_SUBTITLE,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
@@ -546,7 +550,7 @@ fun IngredientSelectorDialog(
                                     text = category.description,
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                if (isHandroll) {
+                                if (usesFlexibleSelection) {
                                     Text(
                                         text = "${includedSelected}/${category.includedCount} incluido${if (category.includedCount != 1) "s" else ""}",
                                         style = MaterialTheme.typography.bodySmall,
@@ -583,7 +587,7 @@ fun IngredientSelectorDialog(
                                         }
                                     }
                                 }
-                                if (!isHandroll && missing > 0) {
+                                if (!usesFlexibleSelection && missing > 0) {
                                     Text(
                                         text = "Selecciona ${missing} opción(es) más para continuar.",
                                         style = MaterialTheme.typography.bodySmall,
@@ -600,14 +604,14 @@ fun IngredientSelectorDialog(
                         }
                     }
                 }
-                if (isHandroll && totalSelectionsAcrossCategories < 1) {
+                if (usesFlexibleSelection && totalSelectionsAcrossCategories < 1) {
                     Text(
                         text = "Selecciona al menos 1 ingrediente para continuar.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-                if (product.optionalIngredients.isNotEmpty()) {
+                if (!usesFlexibleSelection && product.optionalIngredients.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val showHeading = product.ingredientCategories.isNotEmpty()
                         if (showHeading) {
@@ -630,7 +634,7 @@ fun IngredientSelectorDialog(
                         }
                     }
                 }
-                if (isHandroll) {
+                if (usesFlexibleSelection) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(text = "Precio base: ${formatPrice(product.basePrice)}")
                         Text(text = "Extras: ${formatPrice(totalExtrasPrice)}")
