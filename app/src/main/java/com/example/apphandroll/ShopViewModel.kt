@@ -15,13 +15,13 @@ class ShopViewModel : ViewModel() {
             id = "handroll",
             name = "Handroll",
             basePrice = 3500,
-            baseIncludedDescription = "Elige tu proteína favorita, acompáñala con una base cremosa y un vegetal fresco. Si quieres más, puedes agregar proteínas o bases extra por $1.000 y vegetales extra por $500.",
+            baseIncludedDescription = "Incluye hasta 1 proteína, 1 base y 1 vegetal sin costo extra. Proteína o base extra +$1.000, vegetal extra +$500.",
             optionalIngredients = emptyList(),
             ingredientCategories = listOf(
                 IngredientCategory(
                     id = "handroll_proteina",
-                    title = "Proteína",
-                    description = "Selecciona al menos 1 proteína para tu handroll. Cada proteína adicional suma $1.000.",
+                    title = "Proteínas",
+                    description = "Incluye hasta 1 proteína sin costo. Cada proteína adicional suma $1.000.",
                     options = listOf(
                         IngredientOption(id = "handroll_proteina_pollo", name = "Pollo"),
                         IngredientOption(id = "handroll_proteina_camaron", name = "Camarón"),
@@ -35,8 +35,8 @@ class ShopViewModel : ViewModel() {
                 ),
                 IngredientCategory(
                     id = "handroll_base",
-                    title = "Base cremosa",
-                    description = "Incluye 1 base cremosa. Cada base extra suma $1.000.",
+                    title = "Bases",
+                    description = "Incluye hasta 1 base sin costo. Cada base adicional suma $1.000.",
                     options = listOf(
                         IngredientOption(id = "handroll_base_queso", name = "Queso"),
                         IngredientOption(id = "handroll_base_palta", name = "Palta")
@@ -46,8 +46,8 @@ class ShopViewModel : ViewModel() {
                 ),
                 IngredientCategory(
                     id = "handroll_vegetal",
-                    title = "Vegetal fresco",
-                    description = "Escoge 1 vegetal para dar frescura. Cada vegetal adicional suma $500.",
+                    title = "Vegetales",
+                    description = "Incluye hasta 1 vegetal sin costo. Cada vegetal adicional suma $500.",
                     options = listOf(
                         IngredientOption(id = "handroll_vegetal_cebollin", name = "Cebollín"),
                         IngredientOption(id = "handroll_vegetal_ciboulette", name = "Ciboulette"),

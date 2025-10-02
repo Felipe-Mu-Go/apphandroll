@@ -170,8 +170,13 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     }
 
     if (showSelector && currentProduct != null) {
-        val canContinue = currentProduct.ingredientCategories.all { category ->
-            currentCategorySelections[category.id].orEmpty().size >= category.includedCount
+        val totalSelections = currentCategorySelections.values.sumOf { it.size }
+        val canContinue = if (currentProduct.id == "handroll") {
+            totalSelections >= 1
+        } else {
+            currentProduct.ingredientCategories.all { category ->
+                currentCategorySelections[category.id].orEmpty().size >= category.includedCount
+            }
         }
         IngredientSelectorDialog(
             product = currentProduct,
@@ -360,6 +365,16 @@ fun IngredientSelectorDialog(
     onContinue: () -> Unit,
     canContinue: Boolean
 ) {
+    val isHandroll = product.id == "handroll"
+    val selectedOptionalIngredients = product.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
+    val extrasFromCategories = product.ingredientCategories.sumOf { category ->
+        val selections = categorySelections[category.id].orEmpty()
+        (selections.size - category.includedCount).coerceAtLeast(0) * category.extraPrice
+    }
+    val extrasFromOptional = selectedOptionalIngredients.sumOf { it.extraPrice }
+    val totalExtrasPrice = extrasFromCategories + extrasFromOptional
+    val totalSelectionsAcrossCategories = categorySelections.values.sumOf { it.size }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
@@ -372,7 +387,15 @@ fun IngredientSelectorDialog(
                 Text(text = "Cancelar")
             }
         },
-        title = { Text(text = "Selecciona ingredientes") },
+        title = {
+            Text(
+                text = if (isHandroll) {
+                    "Elige tus ingredientes (mínimo 1)"
+                } else {
+                    "Selecciona ingredientes"
+                }
+            )
+        },
         text = {
             Column(
                 modifier = Modifier
@@ -380,29 +403,68 @@ fun IngredientSelectorDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(text = "Incluye: ${product.baseIncludedDescription}", style = MaterialTheme.typography.bodyMedium)
+                if (isHandroll) {
+                    Text(
+                        text = "Puedes escoger libremente entre Proteínas, Bases y Vegetales. Incluye hasta 1 de cada categoría. Extras: proteína/base +$1.000, vegetal +$500.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    Text(
+                        text = "Incluye: ${product.baseIncludedDescription}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
                 if (product.ingredientCategories.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         product.ingredientCategories.forEach { category ->
                             val selections = categorySelections[category.id].orEmpty()
-                            val missing = (category.includedCount - selections.size).coerceAtLeast(0)
                             val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
+                            val missing = (category.includedCount - selections.size).coerceAtLeast(0)
+                            val includedSelected = selections.size.coerceAtMost(category.includedCount)
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text(text = category.title, fontWeight = FontWeight.SemiBold)
                                 Text(
                                     text = category.description,
                                     style = MaterialTheme.typography.bodySmall
                                 )
+                                if (isHandroll) {
+                                    Text(
+                                        text = "${includedSelected}/${category.includedCount} incluido${if (category.includedCount != 1) "s" else ""}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                                 category.options.forEach { option ->
+                                    val isSelected = selections.contains(option.id)
+                                    val selectionIndex = selections.indexOf(option.id)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(
-                                            checked = selections.contains(option.id),
+                                            checked = isSelected,
                                             onCheckedChange = { onToggleCategoryOption(category.id, option.id) }
                                         )
-                                        Text(text = option.name, modifier = Modifier.padding(start = 8.dp))
+                                        Column(modifier = Modifier.padding(start = 8.dp)) {
+                                            Text(text = option.name)
+                                            if (isSelected) {
+                                                val isIncluded = selectionIndex in 0 until category.includedCount
+                                                val labelText = if (isIncluded) {
+                                                    "Incluido"
+                                                } else {
+                                                    "Extra +${formatPrice(category.extraPrice)}"
+                                                }
+                                                Text(
+                                                    text = labelText,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (isIncluded) {
+                                                        MaterialTheme.colorScheme.primary
+                                                    } else {
+                                                        MaterialTheme.colorScheme.secondary
+                                                    }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                                if (missing > 0) {
+                                if (!isHandroll && missing > 0) {
                                     Text(
                                         text = "Selecciona ${missing} opción(es) más para continuar.",
                                         style = MaterialTheme.typography.bodySmall,
@@ -418,6 +480,13 @@ fun IngredientSelectorDialog(
                             }
                         }
                     }
+                }
+                if (isHandroll && totalSelectionsAcrossCategories < 1) {
+                    Text(
+                        text = "Selecciona al menos 1 ingrediente para continuar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
                 if (product.optionalIngredients.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -440,6 +509,16 @@ fun IngredientSelectorDialog(
                                 }
                             }
                         }
+                    }
+                }
+                if (isHandroll) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(text = "Precio base: ${formatPrice(product.basePrice)}")
+                        Text(text = "Extras: ${formatPrice(totalExtrasPrice)}")
+                        Text(
+                            text = "Subtotal: ${formatPrice(product.basePrice + totalExtrasPrice)}",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
                 Row(
