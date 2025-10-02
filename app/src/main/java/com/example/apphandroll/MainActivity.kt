@@ -65,9 +65,27 @@ import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.Product
 
-private val FLEXIBLE_INGREDIENT_PRODUCT_IDS = setOf("handroll", "sushiburger", "sushipleto")
+private const val SUSHIPLETO_VEGETARIANO_ID = "sushipleto_vegetariano"
+private const val SUSHIPLETO_VEGETARIANO_BASE_CATEGORY_ID = "sushipleto_vegetariano_base"
+private const val SUSHIPLETO_VEGETARIANO_CREAMY_CATEGORY_ID = "sushipleto_vegetariano_a_eleccion_cremoso"
+private const val SUSHIPLETO_VEGETARIANO_VEGETAL_CATEGORY_ID = "sushipleto_vegetariano_a_eleccion_vegetal"
 
-private const val FLEXIBLE_INGREDIENT_SUBTITLE = "Puedes escoger libremente entre Proteínas, Bases y Vegetales.\nIncluye hasta 1 por categoría; extras: proteína/base +$1.000, vegetal +$500."
+private val FLEXIBLE_INGREDIENT_PRODUCT_IDS = setOf(
+    "handroll",
+    "sushiburger",
+    "sushipleto",
+    SUSHIPLETO_VEGETARIANO_ID
+)
+
+private const val DEFAULT_FLEXIBLE_INGREDIENT_SUBTITLE = "Puedes escoger libremente entre Proteínas, Bases y Vegetales.\nIncluye hasta 1 por categoría; extras: proteína/base +$1.000, vegetal +$500."
+
+private val FLEXIBLE_INGREDIENT_SUBTITLES = mapOf(
+    SUSHIPLETO_VEGETARIANO_ID to "Una base incluida: Champiñón o Palmito.\nPuedes agregar más: base extra +$1.000.\nA elección: Queso/Palta (+$1.000 c/u), Cebollín/Ciboulette (+$500 c/u)."
+)
+
+private fun getFlexibleIngredientSubtitle(productId: String): String {
+    return FLEXIBLE_INGREDIENT_SUBTITLES[productId] ?: DEFAULT_FLEXIBLE_INGREDIENT_SUBTITLE
+}
 
 private sealed interface CatalogItem
 
@@ -489,6 +507,7 @@ fun IngredientSelectorDialog(
     canContinue: Boolean
 ) {
     val usesFlexibleSelection = FLEXIBLE_INGREDIENT_PRODUCT_IDS.contains(product.id)
+    val isSushipletoVegetariano = product.id == SUSHIPLETO_VEGETARIANO_ID
     val selectedOptionalIngredients = product.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
     val extrasFromCategories = product.ingredientCategories.sumOf { category ->
         val selections = categorySelections[category.id].orEmpty()
@@ -528,7 +547,7 @@ fun IngredientSelectorDialog(
             ) {
                 if (usesFlexibleSelection) {
                     Text(
-                        text = FLEXIBLE_INGREDIENT_SUBTITLE,
+                        text = getFlexibleIngredientSubtitle(product.id),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 } else {
@@ -539,66 +558,74 @@ fun IngredientSelectorDialog(
                 }
                 if (product.ingredientCategories.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        product.ingredientCategories.forEach { category ->
-                            val selections = categorySelections[category.id].orEmpty()
-                            val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
-                            val missing = (category.includedCount - selections.size).coerceAtLeast(0)
-                            val includedSelected = selections.size.coerceAtMost(category.includedCount)
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(text = category.title, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    text = category.description,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                                if (usesFlexibleSelection) {
+                        if (isSushipletoVegetariano) {
+                            SushipletoVegetarianoIngredientContent(
+                                categories = product.ingredientCategories,
+                                categorySelections = categorySelections,
+                                onToggleCategoryOption = onToggleCategoryOption
+                            )
+                        } else {
+                            product.ingredientCategories.forEach { category ->
+                                val selections = categorySelections[category.id].orEmpty()
+                                val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
+                                val missing = (category.includedCount - selections.size).coerceAtLeast(0)
+                                val includedSelected = selections.size.coerceAtMost(category.includedCount)
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(text = category.title, fontWeight = FontWeight.SemiBold)
                                     Text(
-                                        text = "${includedSelected}/${category.includedCount} incluido${if (category.includedCount != 1) "s" else ""}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.primary
+                                        text = category.description,
+                                        style = MaterialTheme.typography.bodySmall
                                     )
-                                }
-                                category.options.forEach { option ->
-                                    val isSelected = selections.contains(option.id)
-                                    val selectionIndex = selections.indexOf(option.id)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(
-                                            checked = isSelected,
-                                            onCheckedChange = { onToggleCategoryOption(category.id, option.id) }
+                                    if (usesFlexibleSelection) {
+                                        Text(
+                                            text = "${includedSelected}/${category.includedCount} incluido${if (category.includedCount != 1) "s" else ""}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
                                         )
-                                        Column(modifier = Modifier.padding(start = 8.dp)) {
-                                            Text(text = option.name)
-                                            if (isSelected) {
-                                                val isIncluded = selectionIndex in 0 until category.includedCount
-                                                val labelText = if (isIncluded) {
-                                                    "Incluido"
-                                                } else {
-                                                    "Extra +${formatPrice(category.extraPrice)}"
-                                                }
-                                                Text(
-                                                    text = labelText,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isIncluded) {
-                                                        MaterialTheme.colorScheme.primary
+                                    }
+                                    category.options.forEach { option ->
+                                        val isSelected = selections.contains(option.id)
+                                        val selectionIndex = selections.indexOf(option.id)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(
+                                                checked = isSelected,
+                                                onCheckedChange = { onToggleCategoryOption(category.id, option.id) }
+                                            )
+                                            Column(modifier = Modifier.padding(start = 8.dp)) {
+                                                Text(text = option.name)
+                                                if (isSelected) {
+                                                    val isIncluded = selectionIndex in 0 until category.includedCount
+                                                    val labelText = if (isIncluded) {
+                                                        "Incluido"
                                                     } else {
-                                                        MaterialTheme.colorScheme.secondary
+                                                        "Extra +${formatPrice(category.extraPrice)}"
                                                     }
-                                                )
+                                                    Text(
+                                                        text = labelText,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = if (isIncluded) {
+                                                            MaterialTheme.colorScheme.primary
+                                                        } else {
+                                                            MaterialTheme.colorScheme.secondary
+                                                        }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                if (!usesFlexibleSelection && missing > 0) {
-                                    Text(
-                                        text = "Selecciona ${missing} opción(es) más para continuar.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                                if (extraCount > 0) {
-                                    Text(
-                                        text = "Extras seleccionados: ${formatPrice(extraCount * category.extraPrice)}",
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
+                                    if (!usesFlexibleSelection && missing > 0) {
+                                        Text(
+                                            text = "Selecciona ${missing} opción(es) más para continuar.",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    if (extraCount > 0) {
+                                        Text(
+                                            text = "Extras seleccionados: ${formatPrice(extraCount * category.extraPrice)}",
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -663,6 +690,137 @@ fun IngredientSelectorDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SushipletoVegetarianoIngredientContent(
+    categories: List<com.example.apphandroll.model.IngredientCategory>,
+    categorySelections: Map<String, List<String>>,
+    onToggleCategoryOption: (String, String) -> Unit
+) {
+    val baseCategory = categories.firstOrNull { it.id == SUSHIPLETO_VEGETARIANO_BASE_CATEGORY_ID }
+    val creamyCategory = categories.firstOrNull { it.id == SUSHIPLETO_VEGETARIANO_CREAMY_CATEGORY_ID }
+    val vegetalCategory = categories.firstOrNull { it.id == SUSHIPLETO_VEGETARIANO_VEGETAL_CATEGORY_ID }
+
+    baseCategory?.let { category ->
+        val selections = categorySelections[category.id].orEmpty()
+        val includedSelected = selections.size.coerceAtMost(category.includedCount)
+        val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text = "Base", fontWeight = FontWeight.SemiBold)
+            Text(text = category.description, style = MaterialTheme.typography.bodySmall)
+            Text(
+                text = "${includedSelected}/${category.includedCount} incluida${if (category.includedCount != 1) "s" else ""}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            category.options.forEach { option ->
+                val isSelected = selections.contains(option.id)
+                val selectionIndex = selections.indexOf(option.id)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleCategoryOption(category.id, option.id) }
+                    )
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(text = option.name)
+                        if (isSelected) {
+                            val isIncluded = selectionIndex in 0 until category.includedCount
+                            val labelText = if (isIncluded) {
+                                "Incluido"
+                            } else {
+                                "Extra +${formatPrice(category.extraPrice)}"
+                            }
+                            Text(
+                                text = labelText,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isIncluded) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.secondary
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            if (extraCount > 0) {
+                Text(
+                    text = "Base extra: ${formatPrice(extraCount * category.extraPrice)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+
+    if (baseCategory != null && (creamyCategory != null || vegetalCategory != null)) {
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+
+    if (creamyCategory != null || vegetalCategory != null) {
+        val creamySelections = creamyCategory?.let { categorySelections[it.id].orEmpty() } ?: emptyList()
+        val vegetalSelections = vegetalCategory?.let { categorySelections[it.id].orEmpty() } ?: emptyList()
+        val extraItems = buildList {
+            creamyCategory?.let { category ->
+                addAll(category.options.map { option ->
+                    Triple(category.id, option, category.extraPrice)
+                })
+            }
+            vegetalCategory?.let { category ->
+                addAll(category.options.map { option ->
+                    Triple(category.id, option, category.extraPrice)
+                })
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(text = "A elección", fontWeight = FontWeight.SemiBold)
+            Text(
+                text = "Queso/Palta extra +${formatPrice(creamyCategory?.extraPrice ?: 1000)}. Cebollín/Ciboulette extra +${formatPrice(vegetalCategory?.extraPrice ?: 500)}.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            val totalSelected = creamySelections.size + vegetalSelections.size
+            Text(
+                text = "Seleccionados: $totalSelected",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            extraItems.forEach { (categoryId, option, price) ->
+                val selectionsForCategory = categorySelections[categoryId].orEmpty()
+                val isSelected = selectionsForCategory.contains(option.id)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onToggleCategoryOption(categoryId, option.id) }
+                    )
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(text = option.name)
+                        Text(
+                            text = "Extra +${formatPrice(price)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.secondary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
+                }
+            }
+            if (creamyCategory != null && creamySelections.isNotEmpty()) {
+                Text(
+                    text = "Cremoso extra: ${formatPrice(creamySelections.size * creamyCategory.extraPrice)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            if (vegetalCategory != null && vegetalSelections.isNotEmpty()) {
+                Text(
+                    text = "Vegetal extra: ${formatPrice(vegetalSelections.size * vegetalCategory.extraPrice)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
 }
 
 @Composable

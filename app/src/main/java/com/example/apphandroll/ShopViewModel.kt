@@ -86,7 +86,42 @@ class ShopViewModel : ViewModel() {
             name = "Sushipleto Vegetariano",
             basePrice = 4500,
             baseIncludedDescription = "Deliciosa combinación de champiñón o palmito, queso, palta y un toque de cebollín o ciboulette.",
-            optionalIngredients = emptyList()
+            optionalIngredients = emptyList(),
+            ingredientCategories = listOf(
+                IngredientCategory(
+                    id = "sushipleto_vegetariano_base",
+                    title = "Base",
+                    description = "Incluye 1 base sin costo. Agregar otra base suma $1.000.",
+                    options = listOf(
+                        IngredientOption(id = "sushipleto_vegetariano_base_champinon", name = "Champiñón"),
+                        IngredientOption(id = "sushipleto_vegetariano_base_palmito", name = "Palmito")
+                    ),
+                    includedCount = 1,
+                    extraPrice = 1000
+                ),
+                IngredientCategory(
+                    id = "sushipleto_vegetariano_a_eleccion_cremoso",
+                    title = "A elección (Queso/Palta)",
+                    description = "Cada opción agrega un extra de $1.000.",
+                    options = listOf(
+                        IngredientOption(id = "sushipleto_vegetariano_eleccion_queso", name = "Queso"),
+                        IngredientOption(id = "sushipleto_vegetariano_eleccion_palta", name = "Palta")
+                    ),
+                    includedCount = 0,
+                    extraPrice = 1000
+                ),
+                IngredientCategory(
+                    id = "sushipleto_vegetariano_a_eleccion_vegetal",
+                    title = "A elección (Cebollín/Ciboulette)",
+                    description = "Cada opción agrega un extra de $500.",
+                    options = listOf(
+                        IngredientOption(id = "sushipleto_vegetariano_eleccion_cebollin", name = "Cebollín"),
+                        IngredientOption(id = "sushipleto_vegetariano_eleccion_ciboulette", name = "Ciboulette")
+                    ),
+                    includedCount = 0,
+                    extraPrice = 500
+                )
+            )
         ),
         Product(
             id = "gohan",
