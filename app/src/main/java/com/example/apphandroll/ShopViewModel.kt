@@ -13,7 +13,13 @@ class ShopViewModel : ViewModel() {
             id = "handroll",
             name = "Handroll",
             basePrice = 3500,
-            baseIncludedDescription = "Delicioso cono de arroz y nori, relleno con la proteína que elijas, más una mezcla cremosa y vegetales frescos que se derriten en cada mordisco.",
+            baseIncludedDescription = """
+                Arma tu handroll eligiendo 1 proteína, 1 base cremosa y 1 vegetal:
+                • Proteínas: Pollo, Camarón, Carne, Kanikama, Palmito o Champiñón.
+                • Bases: Queso o Palta.
+                • Vegetales: Cebollín, Ciboulette o Choclo.
+                ¿Quieres más? Cada proteína o base adicional suma $1.000 y cada vegetal extra $500.
+            """.trimIndent(),
             optionalIngredients = listOf(
                 Ingredient(id = "handroll_extra_proteina_base", name = "Proteína o base extra", extraPrice = 1000),
                 Ingredient(id = "handroll_extra_vegetal", name = "Vegetal extra", extraPrice = 500)
