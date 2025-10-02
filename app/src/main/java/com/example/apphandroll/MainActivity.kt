@@ -47,6 +47,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
@@ -82,6 +83,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     var selectionProduct by remember { mutableStateOf<Product?>(null) }
     var selectionItemId by remember { mutableStateOf<String?>(null) }
     val selectedIngredientIds = remember { mutableStateListOf<String>() }
+    val selectedCategoryOptions = remember { mutableStateMapOf<String, List<String>>() }
     var selectionQuantity by remember { mutableStateOf(1) }
     var showSelector by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
@@ -92,6 +94,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
         selectionProduct = null
         selectionItemId = null
         selectedIngredientIds.clear()
+        selectedCategoryOptions.clear()
         selectionQuantity = 1
         showSelector = false
         showConfirmDialog = false
@@ -120,6 +123,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                         selectionProduct = product
                         selectionItemId = null
                         selectedIngredientIds.clear()
+                        selectedCategoryOptions.clear()
                         selectionQuantity = 1
                         showSelector = true
                     },
@@ -138,6 +142,10 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                         selectionItemId = item.id
                         selectedIngredientIds.clear()
                         selectedIngredientIds.addAll(item.selectedIngredients.map { it.id })
+                        selectedCategoryOptions.clear()
+                        item.selectedCategoryOptions.forEach { (categoryId, optionIds) ->
+                            selectedCategoryOptions[categoryId] = optionIds.toList()
+                        }
                         selectionQuantity = item.quantity
                         showSelector = true
                     },
@@ -153,43 +161,82 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     }
 
     val currentProduct = selectionProduct
+    val currentCategorySelections = if (currentProduct != null) {
+        currentProduct.ingredientCategories.associate { category ->
+            category.id to selectedCategoryOptions[category.id].orEmpty()
+        }
+    } else {
+        emptyMap()
+    }
+
     if (showSelector && currentProduct != null) {
+        val canContinue = currentProduct.ingredientCategories.all { category ->
+            currentCategorySelections[category.id].orEmpty().size >= category.includedCount
+        }
         IngredientSelectorDialog(
             product = currentProduct,
             selectedIngredientIds = selectedIngredientIds,
+            categorySelections = currentCategorySelections,
             quantity = selectionQuantity,
             onQuantityChange = { newQuantity ->
                 selectionQuantity = newQuantity.coerceAtLeast(1)
             },
-            onToggleIngredient = { ingredientId ->
+            onToggleOptionalIngredient = { ingredientId ->
                 if (selectedIngredientIds.contains(ingredientId)) {
                     selectedIngredientIds.remove(ingredientId)
                 } else {
                     selectedIngredientIds.add(ingredientId)
                 }
             },
+            onToggleCategoryOption = { categoryId, optionId ->
+                val currentSelections = selectedCategoryOptions[categoryId].orEmpty()
+                selectedCategoryOptions[categoryId] = if (currentSelections.contains(optionId)) {
+                    currentSelections.filterNot { it == optionId }
+                } else {
+                    currentSelections + optionId
+                }
+            },
             onDismiss = {
                 resetSelection()
             },
             onContinue = {
-                showSelector = false
-                showConfirmDialog = true
-            }
+                if (canContinue) {
+                    showSelector = false
+                    showConfirmDialog = true
+                }
+            },
+            canContinue = canContinue
         )
     }
 
     if (showConfirmDialog && currentProduct != null) {
-        val selectedIngredients = currentProduct.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
+        val optionalExtras = currentProduct.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
+        val categoryExtras = currentProduct.ingredientCategories.flatMap { category ->
+            val selectedIds = currentCategorySelections[category.id].orEmpty()
+            selectedIds.drop(category.includedCount).mapNotNull { optionId ->
+                val optionName = category.options.firstOrNull { it.id == optionId }?.name ?: return@mapNotNull null
+                Ingredient(
+                    id = "${category.id}_extra_$optionId",
+                    name = "${category.title} extra: $optionName",
+                    extraPrice = category.extraPrice
+                )
+            }
+        }
+        val selectedIngredients = optionalExtras + categoryExtras
         ConfirmAddDialog(
             product = currentProduct,
+            categorySelections = currentCategorySelections,
             ingredients = selectedIngredients,
             quantity = selectionQuantity,
             onDismiss = { resetSelection() },
             onConfirm = {
+                val selectionsForCart = currentCategorySelections.mapValues { entry ->
+                    entry.value.toList()
+                }
                 if (selectionItemId == null) {
-                    viewModel.addToCart(currentProduct, selectedIngredients, selectionQuantity)
+                    viewModel.addToCart(currentProduct, selectedIngredients, selectionsForCart, selectionQuantity)
                 } else {
-                    viewModel.updateCartItem(selectionItemId!!, selectedIngredients, selectionQuantity)
+                    viewModel.updateCartItem(selectionItemId!!, selectedIngredients, selectionsForCart, selectionQuantity)
                 }
                 resetSelection()
             }
@@ -304,16 +351,19 @@ fun ProductCard(
 fun IngredientSelectorDialog(
     product: Product,
     selectedIngredientIds: List<String>,
+    categorySelections: Map<String, List<String>>,
     quantity: Int,
     onQuantityChange: (Int) -> Unit,
-    onToggleIngredient: (String) -> Unit,
+    onToggleOptionalIngredient: (String) -> Unit,
+    onToggleCategoryOption: (String, String) -> Unit,
     onDismiss: () -> Unit,
-    onContinue: () -> Unit
+    onContinue: () -> Unit,
+    canContinue: Boolean
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onContinue) {
+            TextButton(onClick = onContinue, enabled = canContinue) {
                 Text(text = "Continuar")
             }
         },
@@ -331,19 +381,63 @@ fun IngredientSelectorDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(text = "Incluye: ${product.baseIncludedDescription}", style = MaterialTheme.typography.bodyMedium)
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    product.optionalIngredients.forEach { ingredient ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(
-                                checked = selectedIngredientIds.contains(ingredient.id),
-                                onCheckedChange = { onToggleIngredient(ingredient.id) }
-                            )
-                            Column(modifier = Modifier.padding(start = 8.dp)) {
-                                Text(text = ingredient.name)
+                if (product.ingredientCategories.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        product.ingredientCategories.forEach { category ->
+                            val selections = categorySelections[category.id].orEmpty()
+                            val missing = (category.includedCount - selections.size).coerceAtLeast(0)
+                            val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(text = category.title, fontWeight = FontWeight.SemiBold)
                                 Text(
-                                    text = "Extra: ${formatPrice(ingredient.extraPrice)}",
+                                    text = category.description,
                                     style = MaterialTheme.typography.bodySmall
                                 )
+                                category.options.forEach { option ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = selections.contains(option.id),
+                                            onCheckedChange = { onToggleCategoryOption(category.id, option.id) }
+                                        )
+                                        Text(text = option.name, modifier = Modifier.padding(start = 8.dp))
+                                    }
+                                }
+                                if (missing > 0) {
+                                    Text(
+                                        text = "Selecciona ${missing} opción(es) más para continuar.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                                if (extraCount > 0) {
+                                    Text(
+                                        text = "Extras seleccionados: ${formatPrice(extraCount * category.extraPrice)}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (product.optionalIngredients.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val showHeading = product.ingredientCategories.isNotEmpty()
+                        if (showHeading) {
+                            Text(text = "Agrega extras opcionales", fontWeight = FontWeight.SemiBold)
+                        }
+                        product.optionalIngredients.forEach { ingredient ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(
+                                    checked = selectedIngredientIds.contains(ingredient.id),
+                                    onCheckedChange = { onToggleOptionalIngredient(ingredient.id) }
+                                )
+                                Column(modifier = Modifier.padding(start = 8.dp)) {
+                                    Text(text = ingredient.name)
+                                    Text(
+                                        text = "Extra: ${formatPrice(ingredient.extraPrice)}",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                             }
                         }
                     }
@@ -372,6 +466,7 @@ fun IngredientSelectorDialog(
 @Composable
 fun ConfirmAddDialog(
     product: Product,
+    categorySelections: Map<String, List<String>>,
     ingredients: List<Ingredient>,
     quantity: Int,
     onDismiss: () -> Unit,
@@ -395,6 +490,20 @@ fun ConfirmAddDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(text = product.name, fontWeight = FontWeight.Bold)
+                if (product.ingredientCategories.isNotEmpty()) {
+                    product.ingredientCategories.forEach { category ->
+                        val selectedIds = categorySelections[category.id].orEmpty()
+                        if (selectedIds.isNotEmpty()) {
+                            val selectedNames = category.options.filter { option ->
+                                selectedIds.contains(option.id)
+                            }.map { it.name }
+                            Text(
+                                text = "${category.title}: ${selectedNames.joinToString()}",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
                 if (ingredients.isEmpty()) {
                     Text(text = "Sin ingredientes adicionales")
                 } else {
@@ -500,6 +609,20 @@ fun CartItemRow(
             ) {
                 Text(text = item.product.name, fontWeight = FontWeight.Bold)
                 Text(text = "x${item.quantity}")
+            }
+            if (item.product.ingredientCategories.isNotEmpty()) {
+                item.product.ingredientCategories.forEach { category ->
+                    val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
+                    if (selectedIds.isNotEmpty()) {
+                        val selectedNames = category.options.filter { option ->
+                            selectedIds.contains(option.id)
+                        }.map { it.name }
+                        Text(
+                            text = "${category.title}: ${selectedNames.joinToString()}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
             }
             if (item.selectedIngredients.isNotEmpty()) {
                 Text(
