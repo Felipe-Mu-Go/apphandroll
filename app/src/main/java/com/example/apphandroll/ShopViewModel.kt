@@ -5,6 +5,8 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
 import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
+import com.example.apphandroll.model.IngredientCategory
+import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.Product
 
 class ShopViewModel : ViewModel() {
@@ -13,16 +15,47 @@ class ShopViewModel : ViewModel() {
             id = "handroll",
             name = "Handroll",
             basePrice = 3500,
-            baseIncludedDescription = """
-                Arma tu handroll eligiendo 1 proteína, 1 base cremosa y 1 vegetal:
-                • Proteínas: Pollo, Camarón, Carne, Kanikama, Palmito o Champiñón.
-                • Bases: Queso o Palta.
-                • Vegetales: Cebollín, Ciboulette o Choclo.
-                ¿Quieres más? Cada proteína o base adicional suma $1.000 y cada vegetal extra $500.
-            """.trimIndent(),
-            optionalIngredients = listOf(
-                Ingredient(id = "handroll_extra_proteina_base", name = "Proteína o base extra", extraPrice = 1000),
-                Ingredient(id = "handroll_extra_vegetal", name = "Vegetal extra", extraPrice = 500)
+            baseIncludedDescription = "Elige tu proteína favorita, acompáñala con una base cremosa y un vegetal fresco. Si quieres más, puedes agregar proteínas o bases extra por $1.000 y vegetales extra por $500.",
+            optionalIngredients = emptyList(),
+            ingredientCategories = listOf(
+                IngredientCategory(
+                    id = "handroll_proteina",
+                    title = "Proteína",
+                    description = "Selecciona al menos 1 proteína para tu handroll. Cada proteína adicional suma $1.000.",
+                    options = listOf(
+                        IngredientOption(id = "handroll_proteina_pollo", name = "Pollo"),
+                        IngredientOption(id = "handroll_proteina_camaron", name = "Camarón"),
+                        IngredientOption(id = "handroll_proteina_carne", name = "Carne"),
+                        IngredientOption(id = "handroll_proteina_kanikama", name = "Kanikama"),
+                        IngredientOption(id = "handroll_proteina_palmito", name = "Palmito"),
+                        IngredientOption(id = "handroll_proteina_champinon", name = "Champiñón")
+                    ),
+                    includedCount = 1,
+                    extraPrice = 1000
+                ),
+                IngredientCategory(
+                    id = "handroll_base",
+                    title = "Base cremosa",
+                    description = "Incluye 1 base cremosa. Cada base extra suma $1.000.",
+                    options = listOf(
+                        IngredientOption(id = "handroll_base_queso", name = "Queso"),
+                        IngredientOption(id = "handroll_base_palta", name = "Palta")
+                    ),
+                    includedCount = 1,
+                    extraPrice = 1000
+                ),
+                IngredientCategory(
+                    id = "handroll_vegetal",
+                    title = "Vegetal fresco",
+                    description = "Escoge 1 vegetal para dar frescura. Cada vegetal adicional suma $500.",
+                    options = listOf(
+                        IngredientOption(id = "handroll_vegetal_cebollin", name = "Cebollín"),
+                        IngredientOption(id = "handroll_vegetal_ciboulette", name = "Ciboulette"),
+                        IngredientOption(id = "handroll_vegetal_choclo", name = "Choclo")
+                    ),
+                    includedCount = 1,
+                    extraPrice = 500
+                )
             )
         ),
         Product(
@@ -61,22 +94,34 @@ class ShopViewModel : ViewModel() {
     private val _cart: SnapshotStateList<CartItem> = mutableStateListOf()
     val cart: SnapshotStateList<CartItem> = _cart
 
-    fun addToCart(product: Product, ingredients: List<Ingredient>, quantity: Int) {
+    fun addToCart(
+        product: Product,
+        ingredients: List<Ingredient>,
+        categorySelections: Map<String, List<String>>,
+        quantity: Int
+    ) {
         _cart.add(
             CartItem(
                 product = product,
                 selectedIngredients = ingredients,
+                selectedCategoryOptions = categorySelections,
                 quantity = quantity
             )
         )
     }
 
-    fun updateCartItem(itemId: String, newIngredients: List<Ingredient>?, newQuantity: Int?) {
+    fun updateCartItem(
+        itemId: String,
+        newIngredients: List<Ingredient>?,
+        newCategorySelections: Map<String, List<String>>?,
+        newQuantity: Int?
+    ) {
         val index = _cart.indexOfFirst { it.id == itemId }
         if (index != -1) {
             val current = _cart[index]
             _cart[index] = current.copy(
                 selectedIngredients = newIngredients ?: current.selectedIngredients,
+                selectedCategoryOptions = newCategorySelections ?: current.selectedCategoryOptions,
                 quantity = newQuantity ?: current.quantity
             )
         }
