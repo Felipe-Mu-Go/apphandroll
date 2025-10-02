@@ -9,6 +9,49 @@ import com.example.apphandroll.model.IngredientCategory
 import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.Product
 
+private fun createSharedIngredientCategories(prefix: String): List<IngredientCategory> {
+    return listOf(
+        IngredientCategory(
+            id = "${prefix}_proteina",
+            title = "Proteínas",
+            description = "Incluye hasta 1 proteína sin costo. Cada proteína adicional suma $1.000.",
+            options = listOf(
+                IngredientOption(id = "${prefix}_proteina_pollo", name = "Pollo"),
+                IngredientOption(id = "${prefix}_proteina_camaron", name = "Camarón"),
+                IngredientOption(id = "${prefix}_proteina_carne", name = "Carne"),
+                IngredientOption(id = "${prefix}_proteina_kanikama", name = "Kanikama"),
+                IngredientOption(id = "${prefix}_proteina_palmito", name = "Palmito"),
+                IngredientOption(id = "${prefix}_proteina_champinon", name = "Champiñón")
+            ),
+            includedCount = 1,
+            extraPrice = 1000
+        ),
+        IngredientCategory(
+            id = "${prefix}_base",
+            title = "Bases",
+            description = "Incluye hasta 1 base sin costo. Cada base adicional suma $1.000.",
+            options = listOf(
+                IngredientOption(id = "${prefix}_base_queso", name = "Queso"),
+                IngredientOption(id = "${prefix}_base_palta", name = "Palta")
+            ),
+            includedCount = 1,
+            extraPrice = 1000
+        ),
+        IngredientCategory(
+            id = "${prefix}_vegetal",
+            title = "Vegetales",
+            description = "Incluye hasta 1 vegetal sin costo. Cada vegetal adicional suma $500.",
+            options = listOf(
+                IngredientOption(id = "${prefix}_vegetal_cebollin", name = "Cebollín"),
+                IngredientOption(id = "${prefix}_vegetal_ciboulette", name = "Ciboulette"),
+                IngredientOption(id = "${prefix}_vegetal_choclo", name = "Choclo")
+            ),
+            includedCount = 1,
+            extraPrice = 500
+        )
+    )
+}
+
 class ShopViewModel : ViewModel() {
     val products: List<Product> = listOf(
         Product(
@@ -17,46 +60,7 @@ class ShopViewModel : ViewModel() {
             basePrice = 3500,
             baseIncludedDescription = "Incluye hasta 1 proteína, 1 base y 1 vegetal sin costo extra. Proteína o base extra +$1.000, vegetal extra +$500.",
             optionalIngredients = emptyList(),
-            ingredientCategories = listOf(
-                IngredientCategory(
-                    id = "handroll_proteina",
-                    title = "Proteínas",
-                    description = "Incluye hasta 1 proteína sin costo. Cada proteína adicional suma $1.000.",
-                    options = listOf(
-                        IngredientOption(id = "handroll_proteina_pollo", name = "Pollo"),
-                        IngredientOption(id = "handroll_proteina_camaron", name = "Camarón"),
-                        IngredientOption(id = "handroll_proteina_carne", name = "Carne"),
-                        IngredientOption(id = "handroll_proteina_kanikama", name = "Kanikama"),
-                        IngredientOption(id = "handroll_proteina_palmito", name = "Palmito"),
-                        IngredientOption(id = "handroll_proteina_champinon", name = "Champiñón")
-                    ),
-                    includedCount = 1,
-                    extraPrice = 1000
-                ),
-                IngredientCategory(
-                    id = "handroll_base",
-                    title = "Bases",
-                    description = "Incluye hasta 1 base sin costo. Cada base adicional suma $1.000.",
-                    options = listOf(
-                        IngredientOption(id = "handroll_base_queso", name = "Queso"),
-                        IngredientOption(id = "handroll_base_palta", name = "Palta")
-                    ),
-                    includedCount = 1,
-                    extraPrice = 1000
-                ),
-                IngredientCategory(
-                    id = "handroll_vegetal",
-                    title = "Vegetales",
-                    description = "Incluye hasta 1 vegetal sin costo. Cada vegetal adicional suma $500.",
-                    options = listOf(
-                        IngredientOption(id = "handroll_vegetal_cebollin", name = "Cebollín"),
-                        IngredientOption(id = "handroll_vegetal_ciboulette", name = "Ciboulette"),
-                        IngredientOption(id = "handroll_vegetal_choclo", name = "Choclo")
-                    ),
-                    includedCount = 1,
-                    extraPrice = 500
-                )
-            )
+            ingredientCategories = createSharedIngredientCategories("handroll")
         ),
         Product(
             id = "sushiburger",
@@ -66,14 +70,16 @@ class ShopViewModel : ViewModel() {
             optionalIngredients = listOf(
                 Ingredient(id = "sushiburger_extra_proteina", name = "Extra proteína", extraPrice = 1000),
                 Ingredient(id = "sushiburger_extra_vegetal", name = "Vegetal extra", extraPrice = 500)
-            )
+            ),
+            ingredientCategories = createSharedIngredientCategories("sushiburger")
         ),
         Product(
             id = "sushipleto",
             name = "Sushipleto",
             basePrice = 5000,
             baseIncludedDescription = "Base de arroz y nori, relleno con una proteína, una base cremosa y un vegetal fresco a tu elección.",
-            optionalIngredients = emptyList()
+            optionalIngredients = emptyList(),
+            ingredientCategories = createSharedIngredientCategories("sushipleto")
         ),
         Product(
             id = "sushipleto_vegetariano",
