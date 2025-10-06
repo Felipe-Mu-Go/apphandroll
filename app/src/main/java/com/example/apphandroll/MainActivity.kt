@@ -68,6 +68,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.apphandroll.R
+import com.example.apphandroll.AppHandrollTheme
+import com.example.apphandroll.ShopViewModel
 import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.IngredientCategory
