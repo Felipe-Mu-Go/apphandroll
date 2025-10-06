@@ -438,6 +438,7 @@ fun ProductListScreen(
                     }
                 }
             }
+            }
         }
     }
 }
