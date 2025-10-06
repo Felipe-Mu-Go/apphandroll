@@ -3,8 +3,8 @@ package com.example.apphandroll
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,9 +67,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.apphandroll.R
 import com.example.apphandroll.model.CartItem
 import com.example.apphandroll.model.Ingredient
+import com.example.apphandroll.model.IngredientCategory
+import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.Product
+import com.example.apphandroll.formatPrice
 
 private const val SUSHIPLETO_VEGETARIANO_ID = "sushipleto_vegetariano"
 private const val SUSHIPLETO_VEGETARIANO_BASE_CATEGORY_ID = "sushipleto_vegetariano_base"
@@ -181,7 +185,9 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                         selectedIngredientIds.clear()
                         selectedIngredientIds.addAll(item.selectedIngredients.map { it.id })
                         selectedCategoryOptions.clear()
-                        item.selectedCategoryOptions.forEach { (categoryId, optionIds) ->
+                        item.selectedCategoryOptions.forEach { entry: Map.Entry<String, List<String>> ->
+                            val categoryId = entry.key
+                            val optionIds = entry.value
                             selectedCategoryOptions[categoryId] = optionIds.toList()
                         }
                         selectionQuantity = item.quantity
@@ -200,7 +206,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
 
     val currentProduct = selectionProduct
     val currentCategorySelections = if (currentProduct != null) {
-        currentProduct.ingredientCategories.associate { category ->
+        currentProduct.ingredientCategories.associate { category: IngredientCategory ->
             category.id to selectedCategoryOptions[category.id].orEmpty()
         }
     } else {
@@ -212,7 +218,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
         val canContinue = if (FLEXIBLE_INGREDIENT_PRODUCT_IDS.contains(currentProduct.id)) {
             totalSelections >= 1
         } else {
-            currentProduct.ingredientCategories.all { category ->
+            currentProduct.ingredientCategories.all { category: IngredientCategory ->
                 currentCategorySelections[category.id].orEmpty().size >= category.includedCount
             }
         }
@@ -236,7 +242,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                 selectedCategoryOptions[categoryId] = if (currentSelections.contains(optionId)) {
                     currentSelections.filterNot { it == optionId }
                 } else {
-                    currentSelections + optionId
+                    currentSelections + listOf(optionId)
                 }
             },
             onDismiss = {
@@ -253,11 +259,14 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     }
 
     if (showConfirmDialog && currentProduct != null) {
-        val optionalExtras = currentProduct.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
-        val categoryExtras = currentProduct.ingredientCategories.flatMap { category ->
+        val optionalExtras = currentProduct.optionalIngredients.filter { ingredient ->
+            selectedIngredientIds.contains(ingredient.id)
+        }
+        val categoryExtras = currentProduct.ingredientCategories.flatMap { category: IngredientCategory ->
             val selectedIds = currentCategorySelections[category.id].orEmpty()
             selectedIds.drop(category.includedCount).mapNotNull { optionId ->
-                val optionName = category.options.firstOrNull { it.id == optionId }?.name ?: return@mapNotNull null
+                val optionName = category.options.firstOrNull { option -> option.id == optionId }?.name
+                    ?: return@mapNotNull null
                 Ingredient(
                     id = "${category.id}_extra_$optionId",
                     name = "${category.title} extra: $optionName",
@@ -273,7 +282,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
             quantity = selectionQuantity,
             onDismiss = { resetSelection() },
             onConfirm = {
-                val selectionsForCart = currentCategorySelections.mapValues { entry ->
+                val selectionsForCart = currentCategorySelections.mapValues { entry: Map.Entry<String, List<String>> ->
                     entry.value.toList()
                 }
                 if (selectionItemId == null) {
@@ -328,7 +337,7 @@ fun ProductListScreen(
     val hasCombinedSushipleto = sushipleto != null && sushipletoVegetariano != null
     val catalogItems = buildList<CatalogItem> {
         var combinedAdded = false
-        products.forEach { product ->
+        products.forEach { product: Product ->
             when (product.id) {
                 "sushipleto" -> {
                     if (hasCombinedSushipleto && !combinedAdded) {
@@ -532,8 +541,10 @@ fun IngredientSelectorDialog(
 ) {
     val usesFlexibleSelection = FLEXIBLE_INGREDIENT_PRODUCT_IDS.contains(product.id)
     val isSushipletoVegetariano = product.id == SUSHIPLETO_VEGETARIANO_ID
-    val selectedOptionalIngredients = product.optionalIngredients.filter { selectedIngredientIds.contains(it.id) }
-    val extrasFromCategories = product.ingredientCategories.sumOf { category ->
+    val selectedOptionalIngredients = product.optionalIngredients.filter { ingredient ->
+        selectedIngredientIds.contains(ingredient.id)
+    }
+    val extrasFromCategories = product.ingredientCategories.sumOf { category: IngredientCategory ->
         val selections = categorySelections[category.id].orEmpty()
         (selections.size - category.includedCount).coerceAtLeast(0) * category.extraPrice
     }
@@ -589,7 +600,7 @@ fun IngredientSelectorDialog(
                                 onToggleCategoryOption = onToggleCategoryOption
                             )
                         } else {
-                            product.ingredientCategories.forEach { category ->
+                            product.ingredientCategories.forEach { category: IngredientCategory ->
                                 val selections = categorySelections[category.id].orEmpty()
                                 val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
                                 val missing = (category.includedCount - selections.size).coerceAtLeast(0)
@@ -607,7 +618,7 @@ fun IngredientSelectorDialog(
                                             color = MaterialTheme.colorScheme.primary
                                         )
                                     }
-                                    category.options.forEach { option ->
+                                    category.options.forEach { option: IngredientOption ->
                                         val isSelected = selections.contains(option.id)
                                         val selectionIndex = selections.indexOf(option.id)
                                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -668,7 +679,7 @@ fun IngredientSelectorDialog(
                         if (showHeading) {
                             Text(text = "Agrega extras opcionales", fontWeight = FontWeight.SemiBold)
                         }
-                        product.optionalIngredients.forEach { ingredient ->
+                        product.optionalIngredients.forEach { ingredient: Ingredient ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = selectedIngredientIds.contains(ingredient.id),
@@ -726,7 +737,7 @@ private fun SushipletoVegetarianoIngredientContent(
     val creamyCategory = categories.firstOrNull { it.id == SUSHIPLETO_VEGETARIANO_CREAMY_CATEGORY_ID }
     val vegetalCategory = categories.firstOrNull { it.id == SUSHIPLETO_VEGETARIANO_VEGETAL_CATEGORY_ID }
 
-    baseCategory?.let { category ->
+    baseCategory?.let { category: IngredientCategory ->
         val selections = categorySelections[category.id].orEmpty()
         val includedSelected = selections.size.coerceAtMost(category.includedCount)
         val extraCount = (selections.size - category.includedCount).coerceAtLeast(0)
@@ -738,7 +749,7 @@ private fun SushipletoVegetarianoIngredientContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
-            category.options.forEach { option ->
+            category.options.forEach { option: IngredientOption ->
                 val isSelected = selections.contains(option.id)
                 val selectionIndex = selections.indexOf(option.id)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -785,13 +796,13 @@ private fun SushipletoVegetarianoIngredientContent(
         val creamySelections = creamyCategory?.let { categorySelections[it.id].orEmpty() } ?: emptyList()
         val vegetalSelections = vegetalCategory?.let { categorySelections[it.id].orEmpty() } ?: emptyList()
         val extraItems = buildList {
-            creamyCategory?.let { category ->
-                addAll(category.options.map { option ->
+            creamyCategory?.let { category: IngredientCategory ->
+                addAll(category.options.map { option: IngredientOption ->
                     Triple(category.id, option, category.extraPrice)
                 })
             }
-            vegetalCategory?.let { category ->
-                addAll(category.options.map { option ->
+            vegetalCategory?.let { category: IngredientCategory ->
+                addAll(category.options.map { option: IngredientOption ->
                     Triple(category.id, option, category.extraPrice)
                 })
             }
@@ -809,7 +820,8 @@ private fun SushipletoVegetarianoIngredientContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
-            extraItems.forEach { (categoryId, option, price) ->
+            extraItems.forEach { triple: Triple<String, IngredientOption, Int> ->
+                val (categoryId, option, price) = triple
                 val selectionsForCategory = categorySelections[categoryId].orEmpty()
                 val isSelected = selectionsForCategory.contains(option.id)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -875,7 +887,7 @@ fun ConfirmAddDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(text = product.name, fontWeight = FontWeight.Bold)
                 if (product.ingredientCategories.isNotEmpty()) {
-                    product.ingredientCategories.forEach { category ->
+                    product.ingredientCategories.forEach { category: IngredientCategory ->
                         val selectedIds = categorySelections[category.id].orEmpty()
                         if (selectedIds.isNotEmpty()) {
                             val selectedNames = category.options.filter { option ->
@@ -892,7 +904,7 @@ fun ConfirmAddDialog(
                     Text(text = "Sin ingredientes adicionales")
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ingredients.forEach { ingredient ->
+                        ingredients.forEach { ingredient: Ingredient ->
                             Text(text = "• ${ingredient.name} (${formatPrice(ingredient.extraPrice)})")
                         }
                     }
@@ -942,7 +954,7 @@ fun CartScreen(
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(cartItems, key = { it.id }) { item ->
+                    items(cartItems, key = { it.id }) { item: CartItem ->
                         CartItemRow(
                             item = item,
                             onEdit = { onEditItem(item) },
@@ -995,7 +1007,7 @@ fun CartItemRow(
                 Text(text = "x${item.quantity}")
             }
             if (item.product.ingredientCategories.isNotEmpty()) {
-                item.product.ingredientCategories.forEach { category ->
+                item.product.ingredientCategories.forEach { category: IngredientCategory ->
                     val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
                     if (selectedIds.isNotEmpty()) {
                         val selectedNames = category.options.filter { option ->
