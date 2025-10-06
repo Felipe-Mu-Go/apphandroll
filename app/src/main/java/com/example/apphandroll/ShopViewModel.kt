@@ -8,6 +8,7 @@ import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.IngredientCategory
 import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.Product
+import java.util.LinkedHashMap
 
 private fun createSharedIngredientCategories(prefix: String): List<IngredientCategory> {
     return listOf(
@@ -141,11 +142,14 @@ class ShopViewModel : ViewModel() {
         categorySelections: Map<String, List<String>>,
         quantity: Int
     ) {
+        require(quantity > 0) { "Quantity must be greater than 0" }
+        val sanitizedIngredients = sanitizeIngredients(ingredients)
+        val sanitizedSelections = sanitizeCategorySelections(categorySelections)
         _cart.add(
             CartItem(
                 product = product,
-                selectedIngredients = ingredients,
-                selectedCategoryOptions = categorySelections,
+                selectedIngredients = sanitizedIngredients,
+                selectedCategoryOptions = sanitizedSelections,
                 quantity = quantity
             )
         )
@@ -160,10 +164,15 @@ class ShopViewModel : ViewModel() {
         val index = _cart.indexOfFirst { it.id == itemId }
         if (index != -1) {
             val current = _cart[index]
+            val sanitizedIngredients = newIngredients?.let(::sanitizeIngredients)
+            val sanitizedSelections = newCategorySelections?.let(::sanitizeCategorySelections)
+            val sanitizedQuantity = newQuantity?.also {
+                require(it > 0) { "Quantity must be greater than 0" }
+            }
             _cart[index] = current.copy(
-                selectedIngredients = newIngredients ?: current.selectedIngredients,
-                selectedCategoryOptions = newCategorySelections ?: current.selectedCategoryOptions,
-                quantity = newQuantity ?: current.quantity
+                selectedIngredients = sanitizedIngredients ?: current.selectedIngredients,
+                selectedCategoryOptions = sanitizedSelections ?: current.selectedCategoryOptions,
+                quantity = sanitizedQuantity ?: current.quantity
             )
         }
     }
@@ -179,5 +188,32 @@ class ShopViewModel : ViewModel() {
 
     fun clearCart() {
         _cart.clear()
+    }
+
+    private fun sanitizeIngredients(ingredients: List<Ingredient>): List<Ingredient> {
+        return buildList(ingredients.size) {
+            ingredients.forEach { ingredient ->
+                require(ingredient.id.isNotBlank()) { "Ingredient id cannot be blank" }
+                require(ingredient.name.isNotBlank()) { "Ingredient name cannot be blank" }
+                require(ingredient.extraPrice >= 0) { "Ingredient extra price cannot be negative" }
+                add(ingredient)
+            }
+        }
+    }
+
+    private fun sanitizeCategorySelections(
+        categorySelections: Map<String, List<String>>
+    ): Map<String, List<String>> {
+        if (categorySelections.isEmpty()) return emptyMap()
+        val sanitized = LinkedHashMap<String, List<String>>(categorySelections.size)
+        categorySelections.forEach { (categoryId, optionIds) ->
+            require(categoryId.isNotBlank()) { "Category id cannot be blank" }
+            val cleanedOptionIds = optionIds.map { optionId ->
+                require(optionId.isNotBlank()) { "Option id cannot be blank for category $categoryId" }
+                optionId
+            }.distinct()
+            sanitized[categoryId] = cleanedOptionIds
+        }
+        return sanitized
     }
 }
