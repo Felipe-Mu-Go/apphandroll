@@ -1,4 +1,5 @@
 <resources>
+    <string name="app_name">AppHandroll</string>
     <string name="customer_info_title">Datos del cliente</string>
     <string name="first_name_label">Nombre</string>
     <string name="last_name_label">Apellido</string>
