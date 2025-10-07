@@ -28,7 +28,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -61,10 +61,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -338,23 +335,6 @@ fun ProductListScreen(
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit
 ) {
-    val googleFontProvider = remember {
-        GoogleFont.Provider(
-            providerAuthority = "com.google.android.gms.fonts",
-            providerPackage = "com.google.android.gms",
-            certificates = R.array.com_google_android_gms_fonts_certs
-        )
-    }
-    val ethnaGoogleFont = remember { GoogleFont("Ethna") }
-    val ethnaFontFamily = remember {
-        FontFamily(
-            Font(
-                googleFont = ethnaGoogleFont,
-                fontProvider = googleFontProvider,
-                weight = FontWeight.Bold
-            )
-        )
-    }
     val sushipleto = products.firstOrNull { it.id == "sushipleto" }
     val sushipletoVegetariano = products.firstOrNull { it.id == "sushipleto_vegetariano" }
     val hasCombinedSushipleto = sushipleto != null && sushipletoVegetariano != null
@@ -400,8 +380,7 @@ fun ProductListScreen(
                         )
                         Text(
                             text = "Arma Tu Handroll",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontFamily = ethnaFontFamily,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.primary
@@ -418,7 +397,7 @@ fun ProductListScreen(
                             }
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.ShoppingCart,
+                                imageVector = Icons.Filled.ShoppingBag,
                                 contentDescription = "Ver carrito"
                             )
                         }
