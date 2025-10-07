@@ -43,6 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -57,10 +58,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,9 +77,11 @@ import com.example.apphandroll.R
 import com.example.apphandroll.AppHandrollTheme
 import com.example.apphandroll.ShopViewModel
 import com.example.apphandroll.model.CartItem
+import com.example.apphandroll.model.CustomerInfo
 import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.IngredientCategory
 import com.example.apphandroll.model.IngredientOption
+import com.example.apphandroll.model.OrderCustomerDetails
 import com.example.apphandroll.model.Product
 import com.example.apphandroll.formatPrice
 
@@ -132,6 +140,8 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     var showSelector by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var showOrderDialog by remember { mutableStateOf(false) }
+    var showCustomerInfoDialog by remember { mutableStateOf(false) }
+    var pendingCustomerInfo by remember { mutableStateOf<CustomerInfo?>(null) }
     var pendingCatalogSnackbar by remember { mutableStateOf(false) }
 
     fun resetSelection() {
@@ -198,7 +208,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                     onRemoveItem = { viewModel.removeCartItem(it) },
                     onConfirmOrder = {
                         if (viewModel.cart.isNotEmpty()) {
-                            showOrderDialog = true
+                            showCustomerInfoDialog = true
                         }
                     }
                 )
@@ -297,13 +307,36 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
         )
     }
 
+    CustomerInfoDialog(
+        visible = showCustomerInfoDialog,
+        onConfirm = { info ->
+            pendingCustomerInfo = info
+            showCustomerInfoDialog = false
+            showOrderDialog = true
+        },
+        onCancel = { showCustomerInfoDialog = false }
+    )
+
     if (showOrderDialog) {
         AlertDialog(
-            onDismissRequest = { showOrderDialog = false },
+            onDismissRequest = {
+                showOrderDialog = false
+                pendingCustomerInfo = null
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        val customerInfo = pendingCustomerInfo
+                        if (customerInfo != null) {
+                            val details = OrderCustomerDetails(
+                                customerName = customerInfo.customerName,
+                                email = customerInfo.email,
+                                phone = customerInfo.phone
+                            )
+                            viewModel.recordOrderCustomer(details)
+                        }
                         showOrderDialog = false
+                        pendingCustomerInfo = null
                         viewModel.clearCart()
                         navController.navigate("catalog") {
                             popUpTo("catalog") { inclusive = false }
@@ -316,7 +349,12 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showOrderDialog = false }) {
+                TextButton(
+                    onClick = {
+                        showOrderDialog = false
+                        pendingCustomerInfo = null
+                    }
+                ) {
                     Text(text = "Cancelar")
                 }
             },
@@ -1056,4 +1094,183 @@ fun CartItemRow(
             }
         }
     }
+}
+
+@Composable
+fun CustomerInfoDialog(
+    visible: Boolean,
+    onConfirm: (CustomerInfo) -> Unit,
+    onCancel: () -> Unit
+) {
+    if (!visible) {
+        return
+    }
+
+    var firstName by rememberSaveable { mutableStateOf("") }
+    var lastName by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var firstNameTouched by rememberSaveable { mutableStateOf(false) }
+    var lastNameTouched by rememberSaveable { mutableStateOf(false) }
+    var emailTouched by rememberSaveable { mutableStateOf(false) }
+    var phoneTouched by rememberSaveable { mutableStateOf(false) }
+
+    val firstNameTrimmed = firstName.trim()
+    val lastNameTrimmed = lastName.trim()
+    val emailTrimmed = email.trim()
+    val normalizedPhone = if (phone.startsWith("+")) {
+        "+" + phone.drop(1).filter { it.isDigit() }
+    } else {
+        phone.filter { it.isDigit() }
+    }
+    val phoneDigitsCount = normalizedPhone.count { it.isDigit() }
+    val phoneValid = phoneDigitsCount >= 8 && (
+        normalizedPhone.all { it.isDigit() } ||
+            (normalizedPhone.startsWith("+") && normalizedPhone.drop(1).all { it.isDigit() })
+        )
+    val emailValid = emailTrimmed.isEmpty() || (
+        emailTrimmed.contains("@") && emailTrimmed.substringAfter("@", "").contains('.')
+        )
+    val firstNameValid = firstNameTrimmed.isNotEmpty()
+    val lastNameValid = lastNameTrimmed.isNotEmpty()
+
+    val firstNameError = firstNameTouched && !firstNameValid
+    val lastNameError = lastNameTouched && !lastNameValid
+    val emailError = emailTouched && emailTrimmed.isNotEmpty() && !emailValid
+    val phoneError = phoneTouched && !phoneValid
+
+    val continueEnabled = firstNameValid && lastNameValid && phoneValid && emailValid
+
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(text = stringResource(R.string.customer_info_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = firstName,
+                    onValueChange = {
+                        firstName = it
+                        firstNameTouched = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = stringResource(R.string.first_name_label)) },
+                    isError = firstNameError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    supportingText = {
+                        if (firstNameError) {
+                            Text(
+                                text = stringResource(R.string.error_required),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = lastName,
+                    onValueChange = {
+                        lastName = it
+                        lastNameTouched = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = stringResource(R.string.last_name_label)) },
+                    isError = lastNameError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    supportingText = {
+                        if (lastNameError) {
+                            Text(
+                                text = stringResource(R.string.error_required),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = {
+                        email = it
+                        emailTouched = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = stringResource(R.string.email_label)) },
+                    isError = emailError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    supportingText = {
+                        if (emailError) {
+                            Text(
+                                text = stringResource(R.string.error_email),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = phone,
+                    onValueChange = { newValue ->
+                        val filtered = buildString {
+                            var plusAdded = false
+                            newValue.forEachIndexed { index, char ->
+                                when {
+                                    char.isDigit() -> append(char)
+                                    char == '+' && !plusAdded && index == 0 -> {
+                                        append(char)
+                                        plusAdded = true
+                                    }
+                                }
+                            }
+                        }
+                        phone = filtered
+                        phoneTouched = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = stringResource(R.string.phone_label)) },
+                    isError = phoneError,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    supportingText = {
+                        if (phoneError) {
+                            Text(
+                                text = stringResource(R.string.error_phone),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        CustomerInfo(
+                            name = firstNameTrimmed,
+                            lastName = lastNameTrimmed,
+                            email = emailTrimmed.ifEmpty { null },
+                            phone = normalizedPhone
+                        )
+                    )
+                },
+                enabled = continueEnabled
+            ) {
+                Text(text = stringResource(R.string.continue_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) {
+                Text(text = stringResource(R.string.cancel))
+            }
+        }
+    )
 }

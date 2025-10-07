@@ -8,6 +8,7 @@ import com.example.apphandroll.model.Ingredient
 import com.example.apphandroll.model.IngredientCategory
 import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.Product
+import com.example.apphandroll.model.OrderCustomerDetails
 import java.util.LinkedHashMap
 
 private fun createSharedIngredientCategories(prefix: String): List<IngredientCategory> {
@@ -136,6 +137,9 @@ class ShopViewModel : ViewModel() {
     private val _cart: SnapshotStateList<CartItem> = mutableStateListOf()
     val cart: SnapshotStateList<CartItem> = _cart
 
+    var lastOrderCustomerDetails: OrderCustomerDetails? = null
+        private set
+
     fun addToCart(
         product: Product,
         ingredients: List<Ingredient>,
@@ -188,6 +192,10 @@ class ShopViewModel : ViewModel() {
 
     fun clearCart() {
         _cart.clear()
+    }
+
+    fun recordOrderCustomer(details: OrderCustomerDetails) {
+        lastOrderCustomerDetails = details
     }
 
     private fun sanitizeIngredients(ingredients: List<Ingredient>): List<Ingredient> {
