@@ -1,0 +1,12 @@
+<resources>
+    <string name="customer_info_title">Datos del cliente</string>
+    <string name="first_name_label">Nombre</string>
+    <string name="last_name_label">Apellido</string>
+    <string name="email_label">Correo (opcional)</string>
+    <string name="phone_label">Teléfono</string>
+    <string name="cancel">Cancelar</string>
+    <string name="continue_action">Continuar</string>
+    <string name="error_required">Campo obligatorio</string>
+    <string name="error_email">Correo inválido</string>
+    <string name="error_phone">Teléfono inválido</string>
+</resources>
