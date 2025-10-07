@@ -7,87 +7,68 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 
-private val googleFontProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
-    certificates = R.array.com_google_android_gms_fonts_certs
-)
-
-private val Poppins = GoogleFont("Poppins")
-private val WorkSans = GoogleFont("Work Sans")
-
-private val HeadingFontFamily = FontFamily(
-    Font(googleFont = Poppins, fontProvider = googleFontProvider, weight = FontWeight.SemiBold),
-    Font(googleFont = Poppins, fontProvider = googleFontProvider, weight = FontWeight.Bold)
-)
-
-private val BodyFontFamily = FontFamily(
-    Font(googleFont = WorkSans, fontProvider = googleFontProvider, weight = FontWeight.Normal),
-    Font(googleFont = WorkSans, fontProvider = googleFontProvider, weight = FontWeight.Medium)
-)
+private val AppFonts = FontFamily.SansSerif
 
 private val DefaultTypography = Typography()
 
 private val AppTypography = Typography(
-    displayLarge = DefaultTypography.displayLarge.copy(fontFamily = HeadingFontFamily),
-    displayMedium = DefaultTypography.displayMedium.copy(fontFamily = HeadingFontFamily),
-    displaySmall = DefaultTypography.displaySmall.copy(fontFamily = HeadingFontFamily),
+    displayLarge = DefaultTypography.displayLarge.copy(fontFamily = AppFonts),
+    displayMedium = DefaultTypography.displayMedium.copy(fontFamily = AppFonts),
+    displaySmall = DefaultTypography.displaySmall.copy(fontFamily = AppFonts),
     headlineLarge = DefaultTypography.headlineLarge.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.SemiBold
     ),
     headlineMedium = DefaultTypography.headlineMedium.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.SemiBold
     ),
     headlineSmall = DefaultTypography.headlineSmall.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp
     ),
     titleLarge = DefaultTypography.titleLarge.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp
     ),
     titleMedium = DefaultTypography.titleMedium.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp
     ),
     titleSmall = DefaultTypography.titleSmall.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp
     ),
     bodyLarge = DefaultTypography.bodyLarge.copy(
-        fontFamily = BodyFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp
     ),
     bodyMedium = DefaultTypography.bodyMedium.copy(
-        fontFamily = BodyFontFamily,
+        fontFamily = AppFonts,
         fontSize = 15.sp
     ),
     bodySmall = DefaultTypography.bodySmall.copy(
-        fontFamily = BodyFontFamily,
+        fontFamily = AppFonts,
         fontSize = 13.sp
     ),
     labelLarge = DefaultTypography.labelLarge.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.SemiBold
     ),
     labelMedium = DefaultTypography.labelMedium.copy(
-        fontFamily = HeadingFontFamily,
+        fontFamily = AppFonts,
         fontWeight = FontWeight.Medium
     ),
-    labelSmall = DefaultTypography.labelSmall.copy(fontFamily = BodyFontFamily)
+    labelSmall = DefaultTypography.labelSmall.copy(fontFamily = AppFonts)
 )
 
 private val ElectricBlue = Color(0xFF1E88E5)
