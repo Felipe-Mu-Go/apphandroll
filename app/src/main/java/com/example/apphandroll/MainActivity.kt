@@ -98,10 +98,14 @@ private val FLEXIBLE_INGREDIENT_PRODUCT_IDS = setOf(
     SUSHIPLETO_VEGETARIANO_ID
 )
 
-private const val DEFAULT_FLEXIBLE_INGREDIENT_SUBTITLE = "Puedes escoger libremente entre Proteínas, Bases y Vegetales.\nIncluye hasta 1 por categoría; extras: proteína/base +$1.000, vegetal +$500."
+private const val DEFAULT_FLEXIBLE_INGREDIENT_SUBTITLE =
+    "Puedes escoger libremente entre Proteínas, Bases y Vegetales." +
+    "\nIncluye hasta 1 por categoría; extras: proteína/base +$1.000, vegetal +$500."
 
 private val FLEXIBLE_INGREDIENT_SUBTITLES = mapOf(
-    SUSHIPLETO_VEGETARIANO_ID to "Una base incluida: Champiñón o Palmito.\nPuedes agregar más: base extra +$1.000.\nA elección: Queso/Palta (+$1.000 c/u), Cebollín/Ciboulette (+$500 c/u)."
+    SUSHIPLETO_VEGETARIANO_ID to "Una base incluida: Champiñón o Palmito." +
+        "\nPuedes agregar más: base extra +$1.000." +
+        "\nA elección: Queso/Palta (+$1.000 c/u), Cebollín/Ciboulette (+$500 c/u)."
 )
 
 private fun getFlexibleIngredientSubtitle(productId: String): String {
