@@ -201,10 +201,19 @@ class ShopViewModel : ViewModel() {
     private fun sanitizeIngredients(ingredients: List<Ingredient>): List<Ingredient> {
         return buildList(ingredients.size) {
             ingredients.forEach { ingredient ->
-                require(ingredient.id.isNotBlank()) { "Ingredient id cannot be blank" }
-                require(ingredient.name.isNotBlank()) { "Ingredient name cannot be blank" }
+                val normalizedId = ingredient.id.trim()
+                val normalizedName = ingredient.name.trim()
+
+                require(normalizedId.isNotEmpty()) { "Ingredient id cannot be blank" }
+                require(normalizedName.isNotEmpty()) { "Ingredient name cannot be blank" }
                 require(ingredient.extraPrice >= 0) { "Ingredient extra price cannot be negative" }
-                add(ingredient)
+
+                add(
+                    ingredient.copy(
+                        id = normalizedId,
+                        name = normalizedName
+                    )
+                )
             }
         }
     }
@@ -214,12 +223,16 @@ class ShopViewModel : ViewModel() {
     ): Map<String, List<String>> {
         if (categorySelections.isEmpty()) return emptyMap()
         val sanitized = LinkedHashMap<String, List<String>>(categorySelections.size)
-        categorySelections.forEach { (categoryId, optionIds) ->
-            require(categoryId.isNotBlank()) { "Category id cannot be blank" }
-            val cleanedOptionIds = optionIds.map { optionId ->
-                require(optionId.isNotBlank()) { "Option id cannot be blank for category $categoryId" }
+        categorySelections.forEach { (rawCategoryId, optionIds) ->
+            val categoryId = rawCategoryId.trim()
+            require(categoryId.isNotEmpty()) { "Category id cannot be blank" }
+
+            val cleanedOptionIds = optionIds.map { rawOptionId ->
+                val optionId = rawOptionId.trim()
+                require(optionId.isNotEmpty()) { "Option id cannot be blank for category $categoryId" }
                 optionId
             }.distinct()
+
             sanitized[categoryId] = cleanedOptionIds
         }
         return sanitized
