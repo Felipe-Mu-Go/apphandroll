@@ -19,8 +19,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -65,7 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -1158,7 +1159,8 @@ fun CustomerInfoDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
                     ),
                     supportingText = {
                         if (firstNameError) {
@@ -1182,7 +1184,8 @@ fun CustomerInfoDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Next
                     ),
                     supportingText = {
                         if (lastNameError) {
@@ -1204,7 +1207,10 @@ fun CustomerInfoDialog(
                     label = { Text(text = stringResource(R.string.email_label)) },
                     isError = emailError,
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    ),
                     supportingText = {
                         if (emailError) {
                             Text(
@@ -1237,7 +1243,10 @@ fun CustomerInfoDialog(
                     label = { Text(text = stringResource(R.string.phone_label)) },
                     isError = phoneError,
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Done
+                    ),
                     supportingText = {
                         if (phoneError) {
                             Text(
