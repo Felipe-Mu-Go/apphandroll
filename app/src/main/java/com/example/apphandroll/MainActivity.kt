@@ -615,8 +615,10 @@ fun IngredientSelectorDialog(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     if (usesFlexibleSelection) {
+                                        val selectionStatus = "${includedSelected}/${category.includedCount} " +
+                                            "incluido${if (category.includedCount != 1) "s" else ""}"
                                         Text(
-                                            text = "${includedSelected}/${category.includedCount} incluido${if (category.includedCount != 1) "s" else ""}",
+                                            text = selectionStatus,
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -747,8 +749,10 @@ private fun SushipletoVegetarianoIngredientContent(
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(text = "Base", fontWeight = FontWeight.SemiBold)
             Text(text = category.description, style = MaterialTheme.typography.bodySmall)
+            val baseSelectionStatus = "${includedSelected}/${category.includedCount} " +
+                "incluida${if (category.includedCount != 1) "s" else ""}"
             Text(
-                text = "${includedSelected}/${category.includedCount} incluida${if (category.includedCount != 1) "s" else ""}",
+                text = baseSelectionStatus,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
