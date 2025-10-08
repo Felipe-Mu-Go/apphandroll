@@ -413,7 +413,7 @@ fun ProductListScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Image(
-                            painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                            painter = painterResource(id = R.drawable.ath),
                             contentDescription = null,
                             modifier = Modifier.size(30.dp)
                         )
