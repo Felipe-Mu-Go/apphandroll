@@ -1,5 +1,6 @@
 package com.example.apphandroll
 
+import android.content.ActivityNotFoundException
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -50,6 +51,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +75,14 @@ import com.example.apphandroll.model.IngredientCategory
 import com.example.apphandroll.model.IngredientOption
 import com.example.apphandroll.model.OrderCustomerDetails
 import com.example.apphandroll.model.Product
+import com.example.apphandroll.whatsapp.WhatsAppOrderMessageData
+import com.example.apphandroll.whatsapp.WhatsAppVariant
+import com.example.apphandroll.whatsapp.buildWhatsAppOrderMessage
+import com.example.apphandroll.whatsapp.createPlayStoreIntent
+import com.example.apphandroll.whatsapp.createPlayStoreWebIntent
+import com.example.apphandroll.whatsapp.createWhatsAppIntent
+import com.example.apphandroll.whatsapp.getWhatsAppTargetNumber
+import com.example.apphandroll.whatsapp.resolveInstalledWhatsAppVariant
 
 private const val SUSHIPLETO_VEGETARIANO_ID = "sushipleto_vegetariano"
 private const val SUSHIPLETO_VEGETARIANO_BASE_CATEGORY_ID = "sushipleto_vegetariano_base"
@@ -124,6 +134,7 @@ class MainActivity : ComponentActivity() {
 fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     val navController = rememberNavController()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     var selectionProduct by remember { mutableStateOf<Product?>(null) }
     var selectionItemId by remember { mutableStateOf<String?>(null) }
@@ -136,6 +147,10 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     var showCustomerInfoDialog by remember { mutableStateOf(false) }
     var pendingCustomerInfo by remember { mutableStateOf<CustomerInfo?>(null) }
     var pendingCatalogSnackbar by remember { mutableStateOf(false) }
+    // NUEVO: envío por WhatsApp - estados para controlar errores y flujo de instalación.
+    var showWhatsAppInstallDialog by remember { mutableStateOf(false) }
+    var pendingPlayStoreVariant by remember { mutableStateOf<WhatsAppVariant?>(WhatsAppVariant.STANDARD) }
+    var whatsappErrorMessage by remember { mutableStateOf<String?>(null) }
 
     fun resetSelection() {
         selectionProduct = null
@@ -151,6 +166,15 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
         if (pendingCatalogSnackbar) {
             snackbarHostState.showSnackbar("Pedido confirmado")
             pendingCatalogSnackbar = false
+        }
+    }
+
+    // NUEVO: envío por WhatsApp - muestra cualquier error en el snackbar global.
+    LaunchedEffect(whatsappErrorMessage) {
+        val message = whatsappErrorMessage
+        if (message != null) {
+            snackbarHostState.showSnackbar(message)
+            whatsappErrorMessage = null
         }
     }
 
@@ -319,15 +343,59 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
             confirmButton = {
                 TextButton(
                     onClick = {
+                        // NUEVO: envío por WhatsApp - prepara y envía el pedido al chat configurado.
                         val customerInfo = pendingCustomerInfo
-                        if (customerInfo != null) {
-                            val details = OrderCustomerDetails(
-                                customerName = customerInfo.customerName,
-                                email = customerInfo.email,
-                                phone = customerInfo.phone
-                            )
-                            viewModel.recordOrderCustomer(details)
+                        val cartSnapshot = viewModel.cart.toList()
+                        if (customerInfo == null || cartSnapshot.isEmpty()) {
+                            whatsappErrorMessage = "Faltan datos del pedido para enviarlo."
+                            return@TextButton
                         }
+
+                        val messageData = WhatsAppOrderMessageData(
+                            businessName = "Arma Tu Handroll",
+                            cartItems = cartSnapshot,
+                            customerInfo = customerInfo,
+                            deliveryMethod = "Por confirmar",
+                            address = null,
+                            schedule = null,
+                            notes = null
+                        )
+
+                        val message = runCatching { buildWhatsAppOrderMessage(messageData) }
+                            .getOrElse {
+                                whatsappErrorMessage = "No se pudo generar el detalle del pedido."
+                                return@TextButton
+                            }
+
+                        val variant = resolveInstalledWhatsAppVariant(context)
+                        if (variant == null) {
+                            pendingPlayStoreVariant = WhatsAppVariant.STANDARD
+                            showWhatsAppInstallDialog = true
+                            return@TextButton
+                        }
+
+                        val intent = createWhatsAppIntent(
+                            variant = variant,
+                            phoneNumber = getWhatsAppTargetNumber(),
+                            message = message
+                        )
+
+                        try {
+                            context.startActivity(intent)
+                        } catch (activityError: ActivityNotFoundException) {
+                            whatsappErrorMessage = "No fue posible abrir WhatsApp en este dispositivo."
+                            return@TextButton
+                        } catch (error: Exception) {
+                            whatsappErrorMessage = "Ocurrió un problema al intentar enviar el pedido."
+                            return@TextButton
+                        }
+
+                        val details = OrderCustomerDetails(
+                            customerName = customerInfo.customerName,
+                            email = customerInfo.email,
+                            phone = customerInfo.phone
+                        )
+                        viewModel.recordOrderCustomer(details)
                         showOrderDialog = false
                         pendingCustomerInfo = null
                         viewModel.clearCart()
@@ -355,7 +423,49 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
             text = { Text(text = "Se enviará el pedido con ${viewModel.cart.sumOf { it.quantity }} ítems.") }
         )
     }
-}
+
+    if (showWhatsAppInstallDialog) {
+        // NUEVO: envío por WhatsApp - diálogo que guía al usuario a instalar la app necesaria.
+        AlertDialog(
+            onDismissRequest = { showWhatsAppInstallDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val variantToOpen = pendingPlayStoreVariant ?: WhatsAppVariant.STANDARD
+                        val launched = try {
+                            context.startActivity(createPlayStoreIntent(variantToOpen))
+                            true
+                        } catch (_: ActivityNotFoundException) {
+                            false
+                        } catch (_: Exception) {
+                            false
+                        }
+                        if (!launched) {
+                            try {
+                                context.startActivity(createPlayStoreWebIntent(variantToOpen))
+                            } catch (error: Exception) {
+                                whatsappErrorMessage = "No se pudo abrir la Play Store."
+                            }
+                        }
+                        showWhatsAppInstallDialog = false
+                    }
+                ) {
+                    Text(text = "Abrir Play Store")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWhatsAppInstallDialog = false }) {
+                    Text(text = "Cerrar")
+                }
+            },
+            title = { Text(text = "Instala WhatsApp") },
+            text = {
+                Text(
+                    text = "Necesitas WhatsApp o WhatsApp Business instalado para enviar tu pedido por chat."
+                )
+            }
+        )
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
