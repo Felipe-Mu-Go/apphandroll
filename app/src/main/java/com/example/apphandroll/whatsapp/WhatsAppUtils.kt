@@ -20,7 +20,7 @@ import java.util.Locale
 const val WHATSAPP_STANDARD_PACKAGE = "com.whatsapp"
 const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
 private const val PLAY_STORE_BASE_URL = "https://play.google.com/store/apps/details?id="
-private const val WHATSAPP_TARGET_NUMBER = "+56937762424"
+private const val WHATSAPP_TARGET_NUMBER = "+56937732424"
 
 /**
  * NUEVO: envío por WhatsApp - variantes soportadas por la app.
