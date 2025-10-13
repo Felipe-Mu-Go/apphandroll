@@ -467,6 +467,8 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
         )
     }
 
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
