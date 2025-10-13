@@ -1,10 +1,11 @@
 <resources>
     <string name="app_name">AppHandroll</string>
     <string name="customer_info_title">Datos del cliente</string>
-    <string name="first_name_label">Nombre</string>
+    <string name="first_name_label">Nombre y Apellido</string>
     <string name="last_name_label">Apellido</string>
     <string name="email_label">Correo (opcional)</string>
     <string name="phone_label">Teléfono</string>
+    <string name="notes_label">Notas (opcional)</string>
     <string name="cancel">Cancelar</string>
     <string name="continue_action">Continuar</string>
     <string name="error_required">Campo obligatorio</string>

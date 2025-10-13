@@ -90,6 +90,8 @@ fun buildWhatsAppOrderMessage(
         }
     }
 
+    val notesText = data.notes?.trim()?.takeUnless { it.isEmpty() }
+
     val subtotalDecimal = data.cartItems.fold(BigDecimal.ZERO) { acc, item ->
         acc + item.totalPrice.toBigDecimal()
     }
@@ -101,79 +103,29 @@ fun buildWhatsAppOrderMessage(
     val totalText = formatPrice(totalNonNegative.toIntExactSafe())
 
     val builder = StringBuilder()
-    builder.appendLine("Pedido ${data.businessName}")
+    builder.appendLine("🍣 **Pedido ${data.businessName}**")
     builder.appendLine()
 
     val contactLines = buildList {
-        customerName?.let { add("Cliente: $it") }
-        customerPhone?.let { add("Teléfono: $it") }
-        scheduleText?.let { add("Hora de Retiro: $it") }
+        customerName?.let { add("👤 **Cliente:** $it") }
+        customerPhone?.let { add("📞 **Teléfono:** $it") }
+        scheduleText?.let { add("🕒 **Hora de Retiro:** $it") }
+        notesText?.let { add("📝 **Notas:** $it") }
     }
     contactLines.forEach { builder.appendLine(it) }
     if (contactLines.isNotEmpty()) {
         builder.appendLine()
     }
 
-    builder.appendLine("Detalle de pedido:")
-    builder.appendLine()
-
-    data.cartItems.forEachIndexed { index, item ->
+    builder.appendLine("🧾 **Detalle de pedido:**")
+    data.cartItems.forEach { item ->
         builder.appendLine(
             "- x${item.quantity} ${item.product.name} — ${formatPrice(item.unitPrice)} c/u → ${formatPrice(item.totalPrice)}"
         )
-
-        val ingredientLines = buildList {
-            val aggregated = linkedMapOf<String, MutableList<String>>()
-
-            fun addSelection(label: String, names: List<String>) {
-                val validNames = names.filter { it.isNotBlank() }
-                if (validNames.isNotEmpty()) {
-                    aggregated.getOrPut(label) { mutableListOf() }.addAll(validNames)
-                }
-            }
-
-            item.product.ingredientCategories.forEach { category ->
-                val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
-                if (selectedIds.isNotEmpty()) {
-                    val selectedNames = selectedIds.mapNotNull { optionId ->
-                        category.options.firstOrNull { it.id == optionId }?.name
-                    }
-                    val lowerTitle = category.title.lowercase(spanishChileLocale)
-                    when {
-                        lowerTitle.contains("prote") -> addSelection("Proteína", selectedNames)
-                        lowerTitle.contains("base") -> addSelection("Base", selectedNames)
-                        lowerTitle.contains("vegetal") -> addSelection("Vegetal", selectedNames)
-                        else -> addSelection("Extra", selectedNames)
-                    }
-                }
-            }
-
-            if (item.selectedIngredients.isNotEmpty()) {
-                addSelection("Extra", item.selectedIngredients.map { it.name })
-            }
-
-            listOf("Proteína", "Base", "Vegetal", "Extra").forEach { label ->
-                aggregated[label]?.let { values ->
-                    val uniqueValues = values.distinct()
-                    if (uniqueValues.isNotEmpty()) {
-                        add("$label: ${uniqueValues.joinToString()}")
-                    }
-                }
-            }
-        }
-
-        if (ingredientLines.isNotEmpty()) {
-            builder.appendLine("Ingredientes:")
-            ingredientLines.forEach { builder.appendLine(it) }
-        }
-
-        if (index != data.cartItems.lastIndex) {
-            builder.appendLine()
-        }
     }
 
     builder.appendLine()
-    builder.append("Total: $totalText")
+    builder.append("💵 **Total:** $totalText")
 
     return builder.toString().trim()
 }
