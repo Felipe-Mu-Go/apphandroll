@@ -13,6 +13,7 @@ import java.math.RoundingMode
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -47,8 +48,12 @@ data class WhatsAppOrderMessageData(
 )
 
 private val spanishChileLocale = Locale("es", "CL")
-private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
-    "EEEE d 'de' MMMM yyyy 'a las' HH:mm",
+private val scheduleDateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
+    "dd/MM/yyyy HH:mm",
+    spanishChileLocale
+)
+private val scheduleTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
+    "HH:mm",
     spanishChileLocale
 )
 
@@ -60,18 +65,30 @@ private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern(
  */
 fun buildWhatsAppOrderMessage(
     data: WhatsAppOrderMessageData,
-    generatedAt: LocalDateTime = LocalDateTime.now()
+    _generatedAt: LocalDateTime = LocalDateTime.now()
 ): String {
     require(data.cartItems.isNotEmpty()) { "Cart must not be empty" }
 
-    val customerName = data.customerInfo?.customerName?.ifBlank { "Sin nombre" } ?: "Sin nombre"
-    val customerPhone = data.customerInfo?.phone?.ifBlank { "Sin teléfono" } ?: "Sin teléfono"
-    val customerEmail = data.customerInfo?.email?.takeUnless { it.isNullOrBlank() } ?: "No informado"
-    val deliveryMethod = data.deliveryMethod?.ifBlank { "Por confirmar" } ?: "Por confirmar"
-    val address = data.address?.ifBlank { "No aplica" } ?: "No aplica"
-    val schedule = data.schedule?.ifBlank { dateFormatter.format(generatedAt) }
-        ?: dateFormatter.format(generatedAt)
-    val notes = data.notes?.ifBlank { "Sin notas" } ?: "Sin notas"
+    val customerName = data.customerInfo?.customerName?.trim()?.takeUnless { it.isEmpty() }
+    val customerPhone = data.customerInfo?.phone?.trim()?.takeUnless { it.isEmpty() }
+    val scheduleText = data.schedule?.trim()?.takeUnless { it.isEmpty() }?.let { raw ->
+        val normalized = raw.trim()
+        val parsedDateTime = runCatching { LocalDateTime.parse(normalized) }
+            .getOrNull()
+            ?: runCatching {
+                LocalDateTime.parse(normalized, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+            }.getOrNull()
+        when {
+            parsedDateTime != null -> parsedDateTime.format(scheduleDateTimeFormatter)
+            else -> {
+                val parsedTime = runCatching { LocalTime.parse(normalized) }.getOrNull()
+                    ?: runCatching {
+                        LocalTime.parse(normalized, DateTimeFormatter.ofPattern("HH:mm"))
+                    }.getOrNull()
+                parsedTime?.format(scheduleTimeFormatter) ?: normalized
+            }
+        }
+    }
 
     val subtotalDecimal = data.cartItems.fold(BigDecimal.ZERO) { acc, item ->
         acc + item.totalPrice.toBigDecimal()
@@ -81,59 +98,82 @@ fun buildWhatsAppOrderMessage(
     val totalDecimal = subtotalDecimal + shippingDecimal - discountDecimal
     val totalNonNegative = if (totalDecimal < BigDecimal.ZERO) BigDecimal.ZERO else totalDecimal
 
-    val subtotalText = formatPrice(subtotalDecimal.toIntExactSafe())
-    val shippingText = formatPrice(shippingDecimal.toIntExactSafe())
-    val discountText = formatPrice(discountDecimal.toIntExactSafe())
     val totalText = formatPrice(totalNonNegative.toIntExactSafe())
 
     val builder = StringBuilder()
-    builder.appendLine("🍣 Pedido ${data.businessName}")
+    builder.appendLine("Pedido ${data.businessName}")
     builder.appendLine()
-    builder.appendLine("👤 Cliente: $customerName")
-    builder.appendLine("📞 Teléfono: $customerPhone")
-    builder.appendLine("📧 Correo: $customerEmail")
-    builder.appendLine("🚚 Método de entrega: $deliveryMethod")
-    builder.appendLine("🏠 Dirección: $address")
-    builder.appendLine("🕒 Fecha/Horario: $schedule")
-    builder.appendLine("📝 Notas: $notes")
-    builder.appendLine()
-    builder.appendLine("🛒 Detalle del pedido:")
 
-    data.cartItems.forEachIndexed { index, item ->
-        val position = index + 1
-        builder.appendLine(
-            "$position. x${item.quantity} ${item.product.name} - ${formatPrice(item.unitPrice)} c/u = ${formatPrice(item.totalPrice)}"
-        )
-
-        val categoryLines = item.product.ingredientCategories.mapNotNull { category ->
-            val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
-            if (selectedIds.isEmpty()) {
-                null
-            } else {
-                val selectedNames = category.options.filter { option ->
-                    selectedIds.contains(option.id)
-                }.joinToString()
-                "   • ${category.title}: $selectedNames"
-            }
-        }
-        categoryLines.forEach { builder.appendLine(it) }
-
-        val extras = if (item.selectedIngredients.isEmpty()) {
-            "Sin adicionales"
-        } else {
-            item.selectedIngredients.joinToString { it.name }
-        }
-        builder.appendLine("   • Extras: $extras")
+    val contactLines = buildList {
+        customerName?.let { add("Cliente: $it") }
+        customerPhone?.let { add("Teléfono: $it") }
+        scheduleText?.let { add("Hora de Retiro: $it") }
+    }
+    contactLines.forEach { builder.appendLine(it) }
+    if (contactLines.isNotEmpty()) {
         builder.appendLine()
     }
 
-    builder.appendLine("📊 Totales:")
-    builder.appendLine("Subtotal: $subtotalText")
-    builder.appendLine("Envío: $shippingText")
-    builder.appendLine("Descuento: $discountText")
-    builder.appendLine("TOTAL: $totalText")
+    builder.appendLine("Detalle de pedido:")
     builder.appendLine()
-    builder.append("¡Muchas gracias por tu pedido! 🙌")
+
+    data.cartItems.forEachIndexed { index, item ->
+        builder.appendLine(
+            "- x${item.quantity} ${item.product.name} — ${formatPrice(item.unitPrice)} c/u → ${formatPrice(item.totalPrice)}"
+        )
+
+        val ingredientLines = buildList {
+            val aggregated = linkedMapOf<String, MutableList<String>>()
+
+            fun addSelection(label: String, names: List<String>) {
+                val validNames = names.filter { it.isNotBlank() }
+                if (validNames.isNotEmpty()) {
+                    aggregated.getOrPut(label) { mutableListOf() }.addAll(validNames)
+                }
+            }
+
+            item.product.ingredientCategories.forEach { category ->
+                val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
+                if (selectedIds.isNotEmpty()) {
+                    val selectedNames = selectedIds.mapNotNull { optionId ->
+                        category.options.firstOrNull { it.id == optionId }?.name
+                    }
+                    val lowerTitle = category.title.lowercase(spanishChileLocale)
+                    when {
+                        lowerTitle.contains("prote") -> addSelection("Proteína", selectedNames)
+                        lowerTitle.contains("base") -> addSelection("Base", selectedNames)
+                        lowerTitle.contains("vegetal") -> addSelection("Vegetal", selectedNames)
+                        else -> addSelection("Extra", selectedNames)
+                    }
+                }
+            }
+
+            if (item.selectedIngredients.isNotEmpty()) {
+                addSelection("Extra", item.selectedIngredients.map { it.name })
+            }
+
+            listOf("Proteína", "Base", "Vegetal", "Extra").forEach { label ->
+                aggregated[label]?.let { values ->
+                    val uniqueValues = values.distinct()
+                    if (uniqueValues.isNotEmpty()) {
+                        add("$label: ${uniqueValues.joinToString()}")
+                    }
+                }
+            }
+        }
+
+        if (ingredientLines.isNotEmpty()) {
+            builder.appendLine("Ingredientes:")
+            ingredientLines.forEach { builder.appendLine(it) }
+        }
+
+        if (index != data.cartItems.lastIndex) {
+            builder.appendLine()
+        }
+    }
+
+    builder.appendLine()
+    builder.append("Total: $totalText")
 
     return builder.toString().trim()
 }
