@@ -1,4 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- NUEVO: envío por WhatsApp - permiso básico para abrir enlaces web si es necesario. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- NUEVO: envío por WhatsApp - declara las aplicaciones que se consultarán. -->
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
