@@ -103,29 +103,78 @@ fun buildWhatsAppOrderMessage(
     val totalText = formatPrice(totalNonNegative.toIntExactSafe())
 
     val builder = StringBuilder()
-    builder.appendLine("🍣 **Pedido ${data.businessName}**")
-    builder.appendLine()
+    builder.appendLine("🍣 *Pedido ${data.businessName}*")
 
     val contactLines = buildList {
-        customerName?.let { add("👤 **Cliente:** $it") }
-        customerPhone?.let { add("📞 **Teléfono:** $it") }
-        scheduleText?.let { add("🕒 **Hora de Retiro:** $it") }
-        notesText?.let { add("📝 **Notas:** $it") }
+        customerName?.let { add("👤 *Cliente:* $it") }
+        customerPhone?.let { add("📞 *Teléfono:* $it") }
+        scheduleText?.let { add("🕒 *Hora de Retiro:* $it") }
+        notesText?.let { add("📝 *Notas:* $it") }
     }
     contactLines.forEach { builder.appendLine(it) }
-    if (contactLines.isNotEmpty()) {
-        builder.appendLine()
-    }
 
-    builder.appendLine("🧾 **Detalle de pedido:**")
+    builder.appendLine("🧾 *Detalle de pedido:*")
     data.cartItems.forEach { item ->
         builder.appendLine(
             "- x${item.quantity} ${item.product.name} — ${formatPrice(item.unitPrice)} c/u → ${formatPrice(item.totalPrice)}"
         )
+
+        val proteinNames = LinkedHashSet<String>()
+        val baseNames = LinkedHashSet<String>()
+        val vegetalNames = LinkedHashSet<String>()
+        val extraNames = LinkedHashSet<String>()
+
+        item.selectedIngredients.forEach { ingredient ->
+            ingredient.name.trim().takeUnless { it.isEmpty() }?.let { extraNames.add(it) }
+        }
+
+        item.product.ingredientCategories.forEach { category ->
+            val selectedIds = item.selectedCategoryOptions[category.id].orEmpty()
+            if (selectedIds.isEmpty()) return@forEach
+
+            val selectedNames = category.options.filter { option ->
+                selectedIds.contains(option.id)
+            }.mapNotNull { option ->
+                option.name.trim().takeUnless { it.isEmpty() }
+            }
+
+            if (selectedNames.isEmpty()) return@forEach
+
+            val normalizedId = category.id.lowercase(spanishChileLocale)
+            val normalizedTitle = category.title.lowercase(spanishChileLocale)
+
+            val targetList = when {
+                normalizedId.contains("prote") || normalizedTitle.contains("prote") -> proteinNames
+                normalizedId.contains("base") || normalizedTitle.contains("base") ||
+                    normalizedTitle.contains("cremos") -> baseNames
+                normalizedId.contains("veget") || normalizedTitle.contains("veget") ||
+                    normalizedTitle.contains("ceboll") || normalizedTitle.contains("ciboul") ||
+                    normalizedTitle.contains("choclo") -> vegetalNames
+                else -> null
+            }
+
+            val receiver = targetList ?: extraNames
+            receiver.addAll(selectedNames)
+        }
+
+        if (proteinNames.isNotEmpty() || baseNames.isNotEmpty() || vegetalNames.isNotEmpty() || extraNames.isNotEmpty()) {
+            builder.appendLine("  Ingredientes:")
+            if (proteinNames.isNotEmpty()) {
+                builder.appendLine("  • Proteína: ${proteinNames.joinToString(", ")}")
+            }
+            if (baseNames.isNotEmpty()) {
+                builder.appendLine("  • Base: ${baseNames.joinToString(", ")}")
+            }
+            if (vegetalNames.isNotEmpty()) {
+                builder.appendLine("  • Vegetal: ${vegetalNames.joinToString(", ")}")
+            }
+            if (extraNames.isNotEmpty()) {
+                builder.appendLine("  • Extra: ${extraNames.joinToString(", ")}")
+            }
+        }
     }
 
-    builder.appendLine()
-    builder.append("💵 **Total:** $totalText")
+    builder.append("💵 *Total:* $totalText")
 
     return builder.toString().trim()
 }
