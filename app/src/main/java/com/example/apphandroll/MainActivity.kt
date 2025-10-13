@@ -358,7 +358,7 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
                             deliveryMethod = "Por confirmar",
                             address = null,
                             schedule = null,
-                            notes = null
+                            notes = customerInfo.notes
                         )
 
                         val message = runCatching { buildWhatsAppOrderMessage(messageData) }
@@ -1215,6 +1215,7 @@ fun CustomerInfoDialog(
     var lastName by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
+    var notes by rememberSaveable { mutableStateOf("") }
     var firstNameTouched by rememberSaveable { mutableStateOf(false) }
     var lastNameTouched by rememberSaveable { mutableStateOf(false) }
     var emailTouched by rememberSaveable { mutableStateOf(false) }
@@ -1223,6 +1224,7 @@ fun CustomerInfoDialog(
     val firstNameTrimmed = firstName.trim()
     val lastNameTrimmed = lastName.trim()
     val emailTrimmed = email.trim()
+    val notesTrimmed = notes.trim()
     val normalizedPhone = if (phone.startsWith("+")) {
         "+" + phone.drop(1).filter { it.isDigit() }
     } else {
@@ -1237,14 +1239,14 @@ fun CustomerInfoDialog(
         emailTrimmed.contains("@") && emailTrimmed.substringAfter("@", "").contains('.')
         )
     val firstNameValid = firstNameTrimmed.isNotEmpty()
-    val lastNameValid = lastNameTrimmed.isNotEmpty()
+    val lastNameValid = true
 
     val firstNameError = firstNameTouched && !firstNameValid
     val lastNameError = lastNameTouched && !lastNameValid
     val emailError = emailTouched && emailTrimmed.isNotEmpty() && !emailValid
     val phoneError = phoneTouched && !phoneValid
 
-    val continueEnabled = firstNameValid && lastNameValid && phoneValid && emailValid
+    val continueEnabled = firstNameValid && phoneValid && emailValid
 
     AlertDialog(
         onDismissRequest = onCancel,
@@ -1276,31 +1278,34 @@ fun CustomerInfoDialog(
                         }
                     }
                 )
-                OutlinedTextField(
-                    value = lastName,
-                    onValueChange = {
-                        lastName = it
-                        lastNameTouched = true
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(text = stringResource(R.string.last_name_label)) },
-                    isError = lastNameError,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Words,
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    supportingText = {
-                        if (lastNameError) {
-                            Text(
-                                text = stringResource(R.string.error_required),
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                val showLegacyLastNameField = false
+                if (showLegacyLastNameField) {
+                    OutlinedTextField(
+                        value = lastName,
+                        onValueChange = {
+                            lastName = it
+                            lastNameTouched = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(text = stringResource(R.string.last_name_label)) },
+                        isError = lastNameError,
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            capitalization = KeyboardCapitalization.Words,
+                            keyboardType = KeyboardType.Text,
+                            imeAction = ImeAction.Next
+                        ),
+                        supportingText = {
+                            if (lastNameError) {
+                                Text(
+                                    text = stringResource(R.string.error_required),
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
-                    }
-                )
+                    )
+                }
                 OutlinedTextField(
                     value = email,
                     onValueChange = {
@@ -1349,7 +1354,7 @@ fun CustomerInfoDialog(
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Phone,
-                        imeAction = ImeAction.Done
+                        imeAction = ImeAction.Next
                     ),
                     supportingText = {
                         if (phoneError) {
@@ -1361,17 +1366,35 @@ fun CustomerInfoDialog(
                         }
                     }
                 )
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(text = stringResource(R.string.notes_label)) },
+                    singleLine = false,
+                    minLines = 2,
+                    maxLines = 4,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        keyboardType = KeyboardType.Text,
+                        imeAction = ImeAction.Default
+                    )
+                )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
+                    val fullNameParts = firstNameTrimmed.split("\\s+".toRegex(), limit = 2)
+                    val primaryName = fullNameParts.getOrNull(0).orEmpty()
+                    val primaryLastName = fullNameParts.getOrNull(1).orEmpty()
                     onConfirm(
                         CustomerInfo(
-                            name = firstNameTrimmed,
-                            lastName = lastNameTrimmed,
+                            name = primaryName,
+                            lastName = primaryLastName,
                             email = emailTrimmed.ifEmpty { null },
-                            phone = normalizedPhone
+                            phone = normalizedPhone,
+                            notes = notesTrimmed.ifEmpty { null }
                         )
                     )
                 },
