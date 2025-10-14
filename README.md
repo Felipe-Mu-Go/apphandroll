@@ -19,6 +19,31 @@ Aplicación Android construida con Kotlin y Jetpack Compose que permite crear pe
 2. Abre el proyecto en Android Studio.
 3. Sincroniza Gradle y ejecuta la app en un dispositivo o emulador Android (API 24+).
 
+
+## Gradle Wrapper sin binarios comprometidos
+Antes de ejecutar cualquier tarea de Gradle, descarga el `gradle-wrapper.jar` de forma segura:
+
+Unix/macOS:
+
+```
+bash scripts/prepare-wrapper.sh
+./gradlew :app:compileDebugKotlin
+```
+
+Windows (PowerShell):
+
+```
+powershell -ExecutionPolicy Bypass -File scripts/prepare-wrapper.ps1
+.\gradlew.bat :app:compileDebugKotlin
+```
+
+También puedes usar el wrapper con bootstrap integrado:
+
+```
+./gradlew-bootstrap :app:assembleDebug
+```
+
+
 ## Política sobre archivos binarios
 Este repositorio no admite la inclusión de archivos binarios en las solicitudes de extracción.
 Utiliza recursos vectoriales (XML/Compose) o genera el contenido en tiempo de ejecución.
