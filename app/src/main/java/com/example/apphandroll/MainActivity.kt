@@ -513,7 +513,7 @@ fun ProductListScreen(
             CenterAlignedTopAppBar(
                 navigationIcon = {
                     Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher_round),
+                        painter = painterResource(id = R.mipmap.ath),
                         contentDescription = "Logo de la app",
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
