@@ -1,7 +1,14 @@
 package com.example.apphandroll
 
+import android.animation.ValueAnimator
 import android.content.ActivityNotFoundException
 import android.os.Bundle
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -51,20 +58,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.mergeDescendants
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.text
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlin.math.abs
 import com.example.apphandroll.AppHandrollTheme
 import com.example.apphandroll.R
 import com.example.apphandroll.ShopViewModel
@@ -470,6 +487,93 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
 
 }
 
+@Composable
+fun AnimatedTitle(
+    text: String,
+    color: Color,
+    enabled: Boolean = true,
+    amplitude: Dp = 6.dp,
+    speedMs: Int = 1200,
+    staggerMs: Int = 60
+) {
+    val shouldAnimate = enabled && ValueAnimator.areAnimatorsEnabled()
+    val baseStyle = MaterialTheme.typography.headlineSmall.copy(
+        color = color,
+        fontWeight = FontWeight.Bold
+    )
+
+    if (!shouldAnimate) {
+        Text(
+            text = text,
+            style = baseStyle,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+        return
+    }
+
+    val characters = remember(text) { text.toList() }
+    val transition = rememberInfiniteTransition(label = "animatedTitleTransition")
+    val density = LocalDensity.current
+    val amplitudePx = with(density) { amplitude.toPx() }
+    val minScale = 0.98f
+
+    Row(
+        modifier = Modifier.semantics(mergeDescendants = true) {
+            this.text = AnnotatedString(text)
+        },
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        characters.forEachIndexed { index, char ->
+            val charAmplitude = when {
+                char.isWhitespace() -> 0f
+                char.isLetterOrDigit() -> amplitudePx
+                else -> amplitudePx * 0.6f
+            }
+
+            val translationY = if (charAmplitude == 0f) {
+                0f
+            } else {
+                transition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 0f,
+                    animationSpec = infiniteRepeatable(
+                        animation = keyframes {
+                            durationMillis = speedMs
+                            0f at 0
+                            -charAmplitude at speedMs / 2 using FastOutSlowInEasing
+                            0f at speedMs using FastOutSlowInEasing
+                        },
+                        startOffset = StartOffset(offsetMillis = staggerMs * index)
+                    ),
+                    label = "charOffset-$index"
+                ).value
+            }
+
+            val scale = if (charAmplitude == 0f) {
+                1f
+            } else {
+                val normalized = 1f - (abs(translationY) / charAmplitude).coerceIn(0f, 1f)
+                minScale + (1f - minScale) * normalized
+            }
+
+            Text(
+                text = char.toString(),
+                style = baseStyle,
+                modifier = Modifier.graphicsLayer(
+                    translationY = translationY,
+                    scaleX = scale,
+                    scaleY = scale
+                ),
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Clip
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
@@ -522,11 +626,8 @@ fun ProductListScreen(
                     )
                 },
                 title = {
-                    Text(
+                    AnimatedTitle(
                         text = "Arma Tu Handroll",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.primary
                     )
                 },
