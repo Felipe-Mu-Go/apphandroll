@@ -7,11 +7,32 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontListFontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
+import com.example.apphandroll.R
 
-private val AppFonts = FontFamily.Serif
+private val latoFont = GoogleFont("Lato")
+
+private val latoProvider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+private val AppFonts: FontFamily = FontListFontFamily(
+    fonts = listOf(
+        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.W900),
+        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Bold),
+        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.SemiBold),
+        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Medium),
+        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Normal)
+    ),
+    fallback = FontFamily.SansSerif
+)
 
 private val DefaultTypography = Typography()
 
