@@ -9,87 +9,85 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontListFontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
 import com.example.apphandroll.R
 
-private val latoFont = GoogleFont("Lato")
+private val lato = GoogleFont("Lato")
 
-private val latoProvider = GoogleFont.Provider(
-    providerAuthority = "com.google.android.gms.fonts",
-    providerPackage = "com.google.android.gms",
+private val provider = GoogleFont.Provider(
+    authority = "com.google.android.gms.fonts",
+    `package` = "com.google.android.gms",
     certificates = R.array.com_google_android_gms_fonts_certs
 )
 
-private val AppFonts: FontFamily = FontListFontFamily(
-    fonts = listOf(
-        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.W900),
-        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Bold),
-        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.SemiBold),
-        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Medium),
-        Font(googleFont = latoFont, fontProvider = latoProvider, weight = FontWeight.Normal)
-    ),
-    fallback = FontFamily.SansSerif
+private val latoFamily = FontFamily(
+    Font(
+        googleFont = lato,
+        fontProvider = provider,
+        weight = FontWeight.W900,
+        style = FontStyle.Normal
+    )
 )
 
 private val DefaultTypography = Typography()
 
 private val AppTypography = Typography(
-    displayLarge = DefaultTypography.displayLarge.copy(fontFamily = AppFonts),
-    displayMedium = DefaultTypography.displayMedium.copy(fontFamily = AppFonts),
-    displaySmall = DefaultTypography.displaySmall.copy(fontFamily = AppFonts),
+    displayLarge = DefaultTypography.displayLarge.copy(fontFamily = latoFamily),
+    displayMedium = DefaultTypography.displayMedium.copy(fontFamily = latoFamily),
+    displaySmall = DefaultTypography.displaySmall.copy(fontFamily = latoFamily),
     headlineLarge = DefaultTypography.headlineLarge.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.SemiBold
     ),
     headlineMedium = DefaultTypography.headlineMedium.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.SemiBold
     ),
     headlineSmall = DefaultTypography.headlineSmall.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 26.sp
     ),
     titleLarge = DefaultTypography.titleLarge.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp
     ),
     titleMedium = DefaultTypography.titleMedium.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 20.sp
     ),
     titleSmall = DefaultTypography.titleSmall.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 18.sp
     ),
     bodyLarge = DefaultTypography.bodyLarge.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp
     ),
     bodyMedium = DefaultTypography.bodyMedium.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontSize = 15.sp
     ),
     bodySmall = DefaultTypography.bodySmall.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontSize = 13.sp
     ),
     labelLarge = DefaultTypography.labelLarge.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.SemiBold
     ),
     labelMedium = DefaultTypography.labelMedium.copy(
-        fontFamily = AppFonts,
+        fontFamily = latoFamily,
         fontWeight = FontWeight.Medium
     ),
-    labelSmall = DefaultTypography.labelSmall.copy(fontFamily = AppFonts)
+    labelSmall = DefaultTypography.labelSmall.copy(fontFamily = latoFamily)
 )
 
 private val RiceWhite = Color(0xFFFFF8F1)
