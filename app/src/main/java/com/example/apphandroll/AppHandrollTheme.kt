@@ -7,19 +7,20 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.googlefonts.GoogleFont.Provider
+import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.unit.sp
 import com.example.apphandroll.R
 
 private val lato = GoogleFont("Lato")
 
-private val provider = GoogleFont.Provider(
-    authority = "com.google.android.gms.fonts",
-    `package` = "com.google.android.gms",
+private val provider = Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
     certificates = R.array.com_google_android_gms_fonts_certs
 )
 
