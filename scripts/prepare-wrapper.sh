@@ -63,8 +63,7 @@ if [[ ! "${DISTRIBUTION_URL}" =~ gradle-([^/-]+)- ]]; then
 fi
 
 GRADLE_VERSION="${BASH_REMATCH[1]}"
-WRAPPER_BASE_URL="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-wrapper.jar"
-SHA_BASE_URL="${WRAPPER_BASE_URL}.sha256"
+DIST_SHA_URL="${DISTRIBUTION_URL}.sha256"
 
 TMP_DIR=$(mktemp -d)
 cleanup() {
@@ -75,13 +74,29 @@ trap cleanup EXIT
 fetch() {
   local url="$1"
   local destination="$2"
+  local allow_fail="${3:-}"
+  local status=0
+
   if command -v curl >/dev/null 2>&1; then
+    set +e
     curl -fL "$url" -o "$destination"
+    status=$?
+    set -e
   elif command -v wget >/dev/null 2>&1; then
+    set +e
     wget -O "$destination" "$url"
+    status=$?
+    set -e
   else
     echo "Error: se requiere curl o wget para descargar ${url}" >&2
     exit 1
+  fi
+
+  if [[ ${status} -ne 0 ]]; then
+    if [[ "${allow_fail}" == "allow-fail" ]]; then
+      return "${status}"
+    fi
+    exit "${status}"
   fi
 }
 
@@ -98,26 +113,50 @@ compute_sha() {
 }
 
 if [[ -z "${EXPECTED_SHA}" ]]; then
-  SHA_FILE="${TMP_DIR}/gradle-wrapper.jar.sha256"
-  fetch "${SHA_BASE_URL}" "${SHA_FILE}"
-  EXPECTED_SHA=$(tr -d '\r\n' < "${SHA_FILE}")
+  SHA_FILE="${TMP_DIR}/distribution.sha256"
+  if fetch "${DIST_SHA_URL}" "${SHA_FILE}" "allow-fail"; then
+    EXPECTED_SHA=$(tr -d '\r\n' < "${SHA_FILE}")
+  else
+    echo "Advertencia: no se pudo descargar el archivo de checksum, se omitirá la verificación sha256." >&2
+  fi
 fi
 
-if [[ -z "${EXPECTED_SHA}" ]]; then
-  echo "Error: no se pudo obtener el hash sha256 esperado" >&2
-  exit 1
+if [[ -n "${EXPECTED_SHA}" ]]; then
+  VERIFY_SHA=true
+else
+  VERIFY_SHA=false
+fi
+
+TMP_DIST="${TMP_DIR}/gradle-distribution.zip"
+fetch "${DISTRIBUTION_URL}" "${TMP_DIST}"
+if [[ "${VERIFY_SHA}" == true ]]; then
+  CALCULATED_SHA=$(compute_sha "${TMP_DIST}")
+
+  if [[ "${CALCULATED_SHA}" != "${EXPECTED_SHA}" ]]; then
+    echo "Error: el hash sha256 de la distribución no coincide con el esperado" >&2
+    echo "Esperado: ${EXPECTED_SHA}" >&2
+    echo "Obtenido: ${CALCULATED_SHA}" >&2
+    exit 1
+  fi
 fi
 
 TMP_JAR="${TMP_DIR}/gradle-wrapper.jar"
-fetch "${WRAPPER_BASE_URL}" "${TMP_JAR}"
-CALCULATED_SHA=$(compute_sha "${TMP_JAR}")
+python3 - "$TMP_DIST" "$TMP_JAR" <<'PY'
+import sys
+from pathlib import Path
+from zipfile import ZipFile
 
-if [[ "${CALCULATED_SHA}" != "${EXPECTED_SHA}" ]]; then
-  echo "Error: el hash sha256 del wrapper no coincide con el esperado" >&2
-  echo "Esperado: ${EXPECTED_SHA}" >&2
-  echo "Obtenido: ${CALCULATED_SHA}" >&2
-  exit 1
-fi
+dist_path = Path(sys.argv[1])
+jar_path = Path(sys.argv[2])
+
+with ZipFile(dist_path) as zf:
+    try:
+        data = zf.read("gradle/wrapper/gradle-wrapper.jar")
+    except KeyError as exc:
+        raise SystemExit("gradle-wrapper.jar no encontrado en la distribución") from exc
+
+jar_path.write_bytes(data)
+PY
 
 mkdir -p "${ROOT_DIR}/gradle/wrapper"
 mv "${TMP_JAR}" "${WRAPPER_JAR}"
