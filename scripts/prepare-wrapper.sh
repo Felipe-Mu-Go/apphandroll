@@ -100,7 +100,7 @@ compute_sha() {
 if [[ -z "${EXPECTED_SHA}" ]]; then
   SHA_FILE="${TMP_DIR}/gradle-wrapper.jar.sha256"
   fetch "${SHA_BASE_URL}" "${SHA_FILE}"
-  EXPECTED_SHA=$(tr -d '\r\n' < "${SHA_FILE}")
+  EXPECTED_SHA=$(awk 'NF {print $1; exit}' "${SHA_FILE}" | tr -d '\r\n')
 fi
 
 if [[ -z "${EXPECTED_SHA}" ]]; then
