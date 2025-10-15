@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -282,10 +283,11 @@ fun SplashIntroScreen(
 }
 
 // NUEVO: splash intro - helper para animaciones opcionales según accesibilidad.
+@Composable
 private fun <T> animatedValue(
     motionEnabled: Boolean,
     defaultValue: T,
-    calculate: () -> T
+    calculate: @Composable () -> T
 ): T {
     return if (motionEnabled) calculate() else defaultValue
 }
