@@ -1114,8 +1114,7 @@ fun CartScreen(
                 Text(text = "Carrito vacío", style = MaterialTheme.typography.bodyLarge)
             } else {
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(1f, fill = false)
+                    modifier = Modifier.weight(1f, fill = false)
                         .fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
