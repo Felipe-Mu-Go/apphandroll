@@ -84,8 +84,6 @@ import com.example.apphandroll.whatsapp.createPlayStoreWebIntent
 import com.example.apphandroll.whatsapp.createWhatsAppIntent
 import com.example.apphandroll.whatsapp.getWhatsAppTargetNumber
 import com.example.apphandroll.whatsapp.resolveInstalledWhatsAppVariant
-// NUEVO: splash intro - importar pantalla animada inicial.
-import com.example.apphandroll.SplashIntroScreen
 
 private const val SUSHIPLETO_VEGETARIANO_ID = "sushipleto_vegetariano"
 private const val SUSHIPLETO_VEGETARIANO_BASE_CATEGORY_ID = "sushipleto_vegetariano_base"
@@ -184,20 +182,11 @@ fun ShopApp(viewModel: ShopViewModel = viewModel()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        // NUEVO: splash intro - agregar ruta inicial animada.
         NavHost(
             navController = navController,
-            startDestination = "splash",
+            startDestination = "catalog",
             modifier = Modifier.padding(padding)
         ) {
-            // NUEVO: splash intro - navegación hacia la pantalla principal tras la animación.
-            composable("splash") {
-                SplashIntroScreen(onFinished = {
-                    navController.navigate("catalog") {
-                        popUpTo("splash") { inclusive = true }
-                    }
-                })
-            }
             composable("catalog") {
                 ProductListScreen(
                     products = viewModel.products,
