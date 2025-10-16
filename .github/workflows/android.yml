@@ -13,14 +13,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
-      - name: Prepare Gradle Wrapper (no binaries in repo)
-        run: bash scripts/prepare-wrapper.sh
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Build Debug Kotlin
-        run: ./gradlew :app:compileDebugKotlin --no-daemon
+      - name: Generate Gradle wrapper
+        run: gradle wrapper --gradle-version 8.13 --distribution-type bin
+
+      - name: Validate Gradle wrapper
+        uses: gradle/wrapper-validation-action@v1
+
+      - name: Assemble Debug build
+        run: ./gradlew assembleDebug
