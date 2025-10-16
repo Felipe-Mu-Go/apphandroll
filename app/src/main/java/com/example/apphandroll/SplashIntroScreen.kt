@@ -288,9 +288,7 @@ private fun <T> animatedValue(
     motionEnabled: Boolean,
     defaultValue: T,
     calculate: @Composable () -> T
-): T {
-    return if (motionEnabled) calculate() else defaultValue
-}
+): T = if (motionEnabled) calculate() else defaultValue
 
 // NUEVO: splash intro - título animado letra por letra.
 @Composable
